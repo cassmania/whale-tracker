@@ -13,6 +13,8 @@
 <body>
   <!-- 전체 화면 컨테이너 (Container) -->
   <div class="app-container">
+    <!-- 인앱 급등 알림 토스트 컨테이너 (Surge Alert Toast Container) -->
+    <div id="toast-container" class="toast-container"></div>
     
     <!-- ==================== 1. 홈 화면 (Home Screen) ==================== -->
     <div id="home-screen" class="screen active">
@@ -42,6 +44,18 @@
         </div>
       </header>
 
+      <!-- 급등 알림 및 설정 토글 바 (Alert Settings Bar) -->
+      <div class="settings-bar">
+        <span class="settings-title">
+          <span class="pulse-dot"></span>
+          실시간 급등 감시 알림
+        </span>
+        <label class="switch">
+          <input type="checkbox" id="alert-toggle" checked>
+          <span class="slider round"></span>
+        </label>
+      </div>
+
       <!-- 터미널 커맨드 라인 (Terminal Command Line) -->
       <div class="terminal-command">
         <span class="prompt">&gt;</span> <span class="command-text">session.open("C")</span>
@@ -67,6 +81,14 @@
         <!-- 실시간 검색 제안 드롭다운 (Dropdown Suggestions) -->
         <div id="search-suggestions" class="search-suggestions hidden">
           <!-- JS에서 동적으로 생성됨 -->
+        </div>
+      </div>
+
+      <!-- 최근 검색 기록 (Recent Searches) -->
+      <div class="recent-searches-container" id="recent-searches-container">
+        <span class="recent-title">최근 검색:</span>
+        <div class="recent-list" id="recent-searches-list">
+          <!-- JS에서 동적으로 채워짐 -->
         </div>
       </div>
 
