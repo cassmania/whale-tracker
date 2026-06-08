@@ -78,7 +78,6 @@ body {
 .screen.active {
   display: flex;
   opacity: 1;
-  animation: screenFadeIn 0.3s ease-out forwards;
 }
 
 @keyframes screenFadeIn {
