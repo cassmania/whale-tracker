@@ -194,8 +194,10 @@ async function fetchWithTimeout(resource, options = {}) {
 // 4. API로부터 실시간 가격 및 시장 데이터를 수집하는 함수 (Fetch Market Data)
 async function fetchRealtimeMarketData(symbol) {
   const coinIds = { "SOL": "solana", "BTC": "bitcoin", "ETH": "ethereum" };
-  const id = coinIds[symbol];
-  if (!id) return null;
+  let id = coinIds[symbol];
+  if (!id) {
+    id = symbol.toLowerCase();
+  }
 
   try {
     const url = `${COINGECKO_API}?ids=${id}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`;
@@ -399,8 +401,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // 분석 버튼
-  analyzeBtn.addEventListener("click", () => {
+  analyzeBtn.addEventListener("click", async () => {
+    const query = tokenSearch.value.trim().toUpperCase();
+    if (query) {
+      await selectToken(query);
+    }
     startAnalysisWorkflow();
+  });
+
+  // 검색창 Enter 입력 시 즉시 분석 시작
+  tokenSearch.addEventListener("keypress", async (e) => {
+    if (e.key === "Enter") {
+      const query = tokenSearch.value.trim().toUpperCase();
+      if (query) {
+        await selectToken(query);
+        startAnalysisWorkflow();
+      }
+    }
   });
 
   // 이전 화면
@@ -417,9 +434,80 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
+// fallbackDatabase에 없는 토큰을 검색했을 때 동적으로 기본 데이터를 생성해주는 함수
+function generateDynamicFallback(symbol) {
+  const name = symbol;
+  fallbackDatabase[symbol] = {
+    symbol: symbol,
+    name: name,
+    rank: "#99",
+    price: "$1.00",
+    change: "↑ 0.00% (24h)",
+    isPositive: true,
+    marketCap: "$100.0M",
+    volume: "$10.0M",
+    website: `${symbol.toLowerCase()}.org`,
+    websiteUrl: `https://${symbol.toLowerCase()}.org`,
+    phaseStatus: "혼조 · 조용한 매집",
+    sliderPercent: 45,
+    forceScore: 50,
+    confidence: 60,
+    finalPhaseStatus: "매집 관망",
+    finalPhaseDesc: `→ ${symbol} 스마트머니 및 고래의 유입 모니터링 필요`,
+    whalePresence: "관찰 대상 / 데이터 탐색 중",
+    altForceDetails: {
+      smartMoney: "DEX 모니터링 주소 분석 중",
+      whale: "고래 순유입 대기 중",
+      mm: "마켓메이커 활동 감지 대기"
+    },
+    patternDetails: {
+      categoryPct: "5.0%",
+      general: "분석 진행 중인 가상자산"
+    },
+    flowDetails: {
+      cex: "$0.00",
+      net: "$0.00",
+      smartNet: "$0.00"
+    },
+    risks: [
+      `<strong>데이터 신규 분석</strong> · ${symbol} 토큰의 온체인 히스토리 추적 시작`,
+      "<strong>유동성 변동성</strong> · 신규 분석 대상으로 초기 유동성 공급 확인 필요"
+    ],
+    indicators: [
+      { name: "24h 트랜잭션 수", signal: "1,200건", isOk: true, desc: "✓ 실시간 트랜잭션 빈도" },
+      { name: "평균 전송 수수료 (USD)", signal: "$0.05", isOk: true, desc: "✓ 소액 전송 최적화" },
+      { name: "전체 블록 높이 (Height)", signal: "102,400", isOk: true, desc: "✓ 네트워크 원장 동기화 중" }
+    ],
+    evidence: {
+      bull: [
+        `${symbol} 커뮤니티 활성도 증가 추세 감지`,
+        "DEX 내 소규모 매수 포지션 점진적 누적"
+      ],
+      bear: [
+        "대형 거래소 지갑으로의 유입 흔적 미비로 단기 강세 모멘텀 부족"
+      ]
+    },
+    distribution: {
+      donutMsg: "초기 분석 토큰 - 분포 모델 연산 중",
+      interpretation: "신규 분석 토큰으로 고래 및 스마트머니 보유 비중의 정밀 분류를 진행하고 있습니다.",
+      heatmapSub: "7일 매집/분배 히트맵 · 활동 요약",
+      heatmapMsg: "온체인 분석을 위한 충분한 크기의 트랜잭션 샘플을 누적하고 있습니다.",
+      presence: [
+        { item: "스마트머니 대규모 유입", result: "X 없음", isOk: false, detail: "추가 검증 필요" },
+        { item: "고래(Whale) 유입", result: "✓ 5개 지갑", isOk: true, detail: "활동성 탐지됨" }
+      ]
+    }
+  };
+}
+
 // 토큰 카드를 선택하고 실시간 데이터를 요청합니다.
 async function selectToken(symbol) {
   currentSelectedToken = symbol;
+  
+  // 만약 fallbackDatabase에 없으면 동적 fallback 데이터를 생성해서 등록
+  if (!fallbackDatabase[symbol]) {
+    generateDynamicFallback(symbol);
+  }
   
   // 기본 모의값 먼저 대입
   const fallback = fallbackDatabase[symbol];
