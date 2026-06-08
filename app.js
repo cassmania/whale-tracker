@@ -960,7 +960,7 @@ async function requestNotificationPermission() {
 function startAlertMonitoring() {
   if (alertInterval) clearInterval(alertInterval);
   
-  // 15초 단위로 가격 변동 감시
+  // 15초 단위로 가격 및 온체인 수급 변동 감시
   alertInterval = setInterval(async () => {
     if (!isAlertActive) return;
     
@@ -977,7 +977,7 @@ function startAlertMonitoring() {
         const lastPrice = priceTracker[symbol];
         if (lastPrice) {
           const changePct = ((currentPrice - lastPrice) / lastPrice) * 100;
-          // 1.5% 급변동 시 알림
+          // 1.5% 급변동 시 사후 급등 알림 발송
           if (changePct >= 1.5) {
             triggerSurgeAlert(symbol, changePct.toFixed(2), rt.price);
           }
@@ -995,6 +995,33 @@ function startAlertMonitoring() {
       const randomChange = (3.0 + Math.random() * 5.0).toFixed(2);
       const simulatedPrice = `$${(10 + Math.random() * 150).toFixed(2)}`;
       triggerSurgeAlert(randomSymbol, randomChange, simulatedPrice);
+    }
+    
+    // 가격 급등 "전" 세력의 매집 전조(Leading Indicator) 감지 알림 (8% 확률)
+    if (Math.random() < 0.08) {
+      const simTokens = ["AAVE", "SUI", "TAO", "XRP", "LINK", "SOL"];
+      const randomSymbol = simTokens[Math.floor(Math.random() * simTokens.length)];
+      
+      const preSurgeTypes = [
+        {
+          title: `🔥 [급등 전조] ${randomSymbol} 스마트머니 매수량 폭발!`,
+          body: `DEX 내 상위 거래자(SmartMoney)들의 ${randomSymbol} 순매수 비중이 92%를 돌파했습니다. 가격 급상승 전 고래 축적 신호입니다.`,
+          badge: `⚡ PRE-SURGE`
+        },
+        {
+          title: `📉 [공급 압축] ${randomSymbol} 거래소 대규모 순유출!`,
+          body: `최근 10분간 주요 CEX 거래소에서 ${randomSymbol} 물량 -$12.4M 순유출 감지. 단기 유통량 공급 부족에 따른 급등 전조 상태입니다.`,
+          badge: `📦 SUPPLY CONTRACT`
+        },
+        {
+          title: `🐋 [고래 포착] ${randomSymbol} Wintermute 지갑 추가 매집!`,
+          body: `Wintermute 마켓메이커 라벨 지갑이 DEX 풀에서 ${randomSymbol} 유동성을 대량 매수하여 흡수 중입니다. 가격 급변동에 유의하세요.`,
+          badge: `🐋 MM ACCUMULATION`
+        }
+      ];
+      
+      const selectedSignal = preSurgeTypes[Math.floor(Math.random() * preSurgeTypes.length)];
+      triggerPreSurgeAlert(randomSymbol, selectedSignal.title, selectedSignal.body, selectedSignal.badge);
     }
   }, 15000);
 }
@@ -1064,5 +1091,78 @@ function triggerSurgeAlert(symbol, pct, currentPrice) {
         setTimeout(() => toast.remove(), 350);
       }
     }, 6000);
+  }
+}
+
+// 급등 전조 선행 알림 발송 (인앱 토스트 + 시스템 알림)
+function triggerPreSurgeAlert(symbol, title, message, badge) {
+  // 1. OS 시스템 알림 발송
+  if ("Notification" in window && Notification.permission === "granted") {
+    new Notification(title, {
+      body: message,
+      icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' rx='50' fill='%23111'><text x='50%25' y='72%25' font-size='60' fill='%23ffb300' font-family='Outfit' font-weight='800' text-anchor='middle'>🔥</text></svg>"
+    });
+  }
+  
+  // 2. 인앱 토스트 알림 카드 생성
+  if (toastContainer) {
+    const toast = document.createElement("div");
+    // 예치/매집 알림은 골드/옐로우 테두리로 차별화
+    toast.className = "toast-alert";
+    toast.style.borderColor = "var(--color-yellow)";
+    toast.style.boxShadow = "0 10px 30px rgba(255, 179, 0, 0.15), inset 0 0 15px rgba(255, 179, 0, 0.05)";
+    
+    toast.innerHTML = `
+      <div class="toast-header">
+        <span class="toast-title" style="color: var(--color-yellow)">🐳 ${badge} SIGNAL</span>
+        <button class="toast-close-btn">&times;</button>
+      </div>
+      <div class="toast-body">
+        ${message}
+      </div>
+      <div class="toast-footer">
+        <button class="toast-action-btn" style="background: rgba(255,179,0,0.15); border-color: var(--color-yellow); color: var(--color-yellow)" data-symbol="${symbol}">온체인 7지표 확인</button>
+      </div>
+    `;
+    
+    // 온체인 분석 버튼 커스텀 스타일 액션
+    const actionBtn = toast.querySelector(".toast-action-btn");
+    actionBtn.addEventListener("mouseover", () => {
+      actionBtn.style.background = "var(--color-yellow)";
+      actionBtn.style.color = "#000";
+    });
+    actionBtn.addEventListener("mouseout", () => {
+      actionBtn.style.background = "rgba(255,179,0,0.15)";
+      actionBtn.style.color = "var(--color-yellow)";
+    });
+    
+    // 닫기 버튼
+    toast.querySelector(".toast-close-btn").addEventListener("click", () => {
+      toast.classList.add("fade-out");
+      setTimeout(() => toast.remove(), 350);
+    });
+    
+    // 온체인 분석 버튼 누를 시 대상 분석 실행 및 홈 복귀
+    actionBtn.addEventListener("click", async () => {
+      toast.classList.add("fade-out");
+      setTimeout(() => toast.remove(), 350);
+      
+      reportScreen.classList.remove("active");
+      homeScreen.classList.add("active");
+      
+      tokenSearch.value = symbol;
+      await selectToken(symbol);
+      startAnalysisWorkflow();
+    });
+    
+    toastContainer.appendChild(toast);
+    
+    // 7.5초 후 자동 제거
+    setTimeout(() => {
+      if (toast.parentElement) {
+        toast.classList.add("fade-out");
+        setTimeout(() => toast.remove(), 350);
+      }
+    }, 7500);
   }
 }
