@@ -639,14 +639,25 @@ function startAnalysisWorkflow() {
   });
 
   setTimeout(async () => {
-    // 실시간 데이터로 채워넣기
-    await populateReportData(currentSelectedToken);
-    generateHeatmapGrid();
+    try {
+      // 실시간 데이터로 채워넣기
+      await populateReportData(currentSelectedToken);
+      generateHeatmapGrid();
 
-    tabButtons[0].click();
+      if (tabButtons && tabButtons.length > 0) {
+        tabButtons[0].click();
+      }
 
-    loaderScreen.classList.remove("active");
-    reportScreen.classList.add("active");
+      loaderScreen.classList.remove("active");
+      reportScreen.classList.add("active");
+    } catch (err) {
+      console.error("분석 로딩 중 예외 발생:", err);
+      const p = document.createElement("div");
+      p.className = "line red";
+      p.textContent = `> ERROR: ${err.message || err}`;
+      terminalBody.appendChild(p);
+      terminalBody.scrollTop = terminalBody.scrollHeight;
+    }
   }, 2000);
 }
 
