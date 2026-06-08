@@ -913,6 +913,13 @@ function startAnalysisWorkflow() {
       p.textContent = `> ERROR: ${err.message || err}`;
       terminalBody.appendChild(p);
       terminalBody.scrollTop = terminalBody.scrollHeight;
+      
+      // 오류 발생 시 3초 후 안전하게 로더를 제거하고 홈 화면으로 복구
+      setTimeout(() => {
+        loaderScreen.classList.remove("active");
+        homeScreen.classList.add("active");
+        alert("분석 수행 중 오류가 발생하였습니다: " + (err.message || err));
+      }, 3000);
     }
   }, 2000);
 }
