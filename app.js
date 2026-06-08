@@ -121,6 +121,20 @@ const fallbackDatabase = {
     phaseStatus: "혼조 · 분배 경계선", sliderPercent: 55, forceScore: 48, confidence: 65,
     finalPhaseStatus: "중립 국면", finalPhaseDesc: "→ 스테이킹 물량 증가 및 가스비 연소율 둔화",
     whalePresence: "일부 고래 분배 움직임 포착",
+    altForceDetails: {
+      smartMoney: "DEX 스마트머니 순유출 전환",
+      whale: "순유출 -$89M",
+      mm: "Uniswap V3 유동성 공급자 물량 소폭 이탈 중"
+    },
+    patternDetails: {
+      categoryPct: "35.2%",
+      general: "일반 스마트 컨트랙트 지갑 보유 다수"
+    },
+    flowDetails: {
+      cex: "+$120.4M (순입금)",
+      net: "-$89.0M",
+      smartNet: "-$12.5M"
+    },
     risks: [
       "<strong>가스 가격 하락</strong> · L2 활성화로 인한 이더리움 메인넷 연소량(Burn Rate) 급감",
       "<strong>고래 순유입 감소</strong> · 거래소로 향하는 지갑 이체 수량 소폭 상승"
