@@ -69,6 +69,20 @@ const fallbackDatabase = {
     phaseStatus: "매집 강세 · 기관 유입세", sliderPercent: 78, forceScore: 85, confidence: 90,
     finalPhaseStatus: "강력 매집", finalPhaseDesc: "→ 장기 홀더들의 지속적 매집 + 장외거래(OTC) 활성화",
     whalePresence: "확인됨 / 대형 기관 및 ETF 유입 주도",
+    altForceDetails: {
+      smartMoney: "장기 보유 홀더 순매수 증가세",
+      whale: "주요 고래 주소 순유입 +$2.4B",
+      mm: "Binance/Coinbase 마켓메이커 물량 안정적 수급 유지"
+    },
+    patternDetails: {
+      categoryPct: "42.5%",
+      general: "메이저 가상자산 전형적 집중 분포"
+    },
+    flowDetails: {
+      cex: "-$1.2B (순유출)",
+      net: "+$2.85B",
+      smartNet: "+$150M"
+    },
     risks: [
       "<strong>단기 차익 실현 압력</strong> · 미실현 수익률이 3년래 최고점 부근",
       "<strong>거시경제 변동성</strong> · 미국 기준금리 변동에 따른 선물 포지션 강제 청산 주의"
