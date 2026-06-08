@@ -1040,7 +1040,7 @@ function startAlertMonitoring() {
         const rt = await fetchRealtimeMarketData(symbol);
         if (!rt) continue;
         
-        const currentPrice = parseFloat(rt.price.replace(/[^0-9.-]+/g, ""));
+        const currentPrice = rt.rawPrice || parseFloat(rt.price.replace(/[^0-9.-]+/g, ""));
         if (isNaN(currentPrice)) continue;
         
         const lastPrice = priceTracker[symbol];
