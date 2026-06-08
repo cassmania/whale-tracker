@@ -36,9 +36,9 @@ const fallbackDatabase = {
       "<strong>추가 경고</strong> · holders·transfers 데이터 미수신 + 봇 주도 DEX 매수 지배 - 수급 신뢰도 제한적"
     ],
     indicators: [
-      { name: "최근 에포크 (Epoch)", signal: "실시간 로드 중...", isOk: true, desc: "✓ 솔라나 RPC 실시간 연동" },
-      { name: "현재 슬롯 (Slot)", signal: "실시간 로드 중...", isOk: true, desc: "✓ 최신 블록 생성 속도 양호" },
-      { name: "유통 공급량 (Circulating)", signal: "실시간 로드 중...", isOk: true, desc: "✓ SOL 인플레이션율 정상 범위" },
+      { name: "최근 에포크 (Epoch)", signal: "584 (91% 진행)", isOk: true, desc: "✓ 솔라나 RPC 실시간 연동" },
+      { name: "현재 슬롯 (Slot)", signal: "268,419,502", isOk: true, desc: "✓ 최신 블록 생성 속도 양호" },
+      { name: "유통 공급량 (Circulating)", signal: "462.1M SOL", isOk: true, desc: "✓ SOL 인플레이션율 정상 범위" },
       { name: "7일 거래소 흐름", signal: "-$129.84M 순유출", isOk: true, desc: "✓ 단기 매집 정황" },
       { name: "고래 지갑 유입", signal: "+$497.1k (7일)", isOk: true, desc: "✓ 고래 신규 매집" }
     ],
@@ -88,9 +88,9 @@ const fallbackDatabase = {
       "<strong>거시경제 변동성</strong> · 미국 기준금리 변동에 따른 선물 포지션 강제 청산 주의"
     ],
     indicators: [
-      { name: "24h 트랜잭션 수", signal: "실시간 로드 중...", isOk: true, desc: "✓ 비트코인 네트워크 활성도" },
-      { name: "평균 전송 수수료 (USD)", signal: "실시간 로드 중...", isOk: true, desc: "✓ 전송 수수료 변동 추이 반영" },
-      { name: "전체 블록 높이 (Height)", signal: "실시간 로드 중...", isOk: true, desc: "✓ 블록 생성 정상 작동 중" },
+      { name: "24h 트랜잭션 수", signal: "384,102건", isOk: true, desc: "✓ 비트코인 네트워크 활성도" },
+      { name: "평균 전송 수수료 (USD)", signal: "$2.450", isOk: true, desc: "✓ 전송 수수료 변동 추이 반영" },
+      { name: "전체 블록 높이 (Height)", signal: "842,109", isOk: true, desc: "✓ 블록 생성 정상 작동 중" },
       { name: "Top 100 지갑 잔고", signal: "+0.45% 증가", isOk: true, desc: "✓ 메이저 고래 보유량 축적" },
       { name: "신규 지갑 유입", signal: "+$1.8B (7일)", isOk: true, desc: "✓ 신규 고액 자산가 유입" }
     ],
@@ -140,9 +140,9 @@ const fallbackDatabase = {
       "<strong>고래 순유입 감소</strong> · 거래소로 향하는 지갑 이체 수량 소폭 상승"
     ],
     indicators: [
-      { name: "24h 트랜잭션 수", signal: "실시간 로드 중...", isOk: true, desc: "✓ 이더리움 네트워크 거래 빈도" },
-      { name: "평균 전송 수수료 (USD)", signal: "실시간 로드 중...", isOk: false, desc: "✗ 네트워크 혼잡에 따른 수수료 상승" },
-      { name: "전체 블록 높이 (Height)", signal: "실시간 로드 중...", isOk: true, desc: "✓ 검증인 네트워크 정상 가동" },
+      { name: "24h 트랜잭션 수", signal: "1,120,450건", isOk: true, desc: "✓ 이더리움 네트워크 거래 빈도" },
+      { name: "평균 전송 수수료 (USD)", signal: "$1.850", isOk: false, desc: "✗ 네트워크 혼잡에 따른 수수료 상승" },
+      { name: "전체 블록 높이 (Height)", signal: "19,410,250", isOk: true, desc: "✓ 검증인 네트워크 정상 가동" },
       { name: "Top 100 지갑 잔고", signal: "-0.12% 감소", isOk: false, desc: "✗ 상위 홀더들의 비중 분산" },
       { name: "신규 지갑 유입", signal: "+$320M (7일)", isOk: true, desc: "✓ 신규 진입자 안정적 유입" }
     ],
