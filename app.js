@@ -16,6 +16,20 @@ const fallbackDatabase = {
     phaseStatus: "혼조 · 조용한 매집", sliderPercent: 31, forceScore: 62, confidence: 50,
     finalPhaseStatus: "매집 강세", finalPhaseDesc: "→ 핵심 매수 지갑 비중 100% + 매수 규모 $0",
     whalePresence: "부재 / 일반 지갑 분산형 주도",
+    altForceDetails: {
+      smartMoney: "DEX 대형 매수자 15명",
+      whale: "순유입 +$497.1K",
+      mm: "Wintermute Market Making [MfDuWeqS] 등 1개 라벨이 +$17.67M 흡수 중"
+    },
+    patternDetails: {
+      categoryPct: "0.0%",
+      general: "신규/소형 토큰 전형"
+    },
+    flowDetails: {
+      cex: "+$41.85M",
+      net: "+$129.84M",
+      smartNet: "-$45"
+    },
     risks: [
       "<strong>스마트머니 부재</strong> · 기관/스마트머니 지지선 없음",
       "<strong>거래소 순유입 증가</strong> · 단기 매도 압력 상승 중",
