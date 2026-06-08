@@ -1125,3 +1125,274 @@ body {
   font-family: 'Fira Code', monospace;
   font-weight: 500;
 }
+
+/* ==================== 4. 추가 기능 스타일 (Recent Searches & Surge Alert Toggle) ==================== */
+
+/* 급등 알림 토글 바 */
+.settings-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 230, 118, 0.03);
+  border: 1px solid rgba(0, 230, 118, 0.15);
+  padding: 10px 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 10px rgba(0, 230, 118, 0.05);
+}
+
+.settings-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-green);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--color-green-glow);
+  display: inline-block;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 12px var(--color-green); }
+  100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+/* 토글 스위치 스타일 */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: .3s;
+  border: 1px solid var(--border-color);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--text-secondary);
+  transition: .3s;
+}
+
+input:checked + .slider {
+  background-color: rgba(0, 230, 118, 0.15);
+  border-color: var(--color-green);
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+  background-color: var(--color-green);
+  box-shadow: 0 0 8px var(--color-green-glow);
+}
+
+.slider.round {
+  border-radius: 24px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* 최근 검색 기록 영역 */
+.recent-searches-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -10px;
+  margin-bottom: 20px;
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.recent-title {
+  color: var(--text-secondary);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.recent-list {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none; /* Firefox */
+}
+
+.recent-list::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.recent-tag {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 4px 8px 4px 10px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.recent-tag:hover {
+  background: rgba(0, 230, 118, 0.05);
+  border-color: var(--color-green);
+  color: var(--color-green);
+}
+
+.recent-delete {
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-block;
+  line-height: 1;
+  padding: 0 2px;
+  transition: color 0.2s;
+}
+
+.recent-delete:hover {
+  color: var(--color-red);
+}
+
+/* 인앱 알림 토스트 */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 360px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast-alert {
+  pointer-events: auto;
+  background: rgba(10, 15, 24, 0.95);
+  border: 1.5px solid var(--color-green);
+  box-shadow: 0 10px 30px rgba(0, 230, 118, 0.2), inset 0 0 15px rgba(0, 230, 118, 0.05);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  backdrop-filter: blur(10px);
+  animation: slideInDown 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.35s ease;
+}
+
+.toast-alert.fade-out {
+  opacity: 0;
+  transform: translateY(-20px) scale(0.9);
+}
+
+.toast-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.toast-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-green);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Fira Code', monospace;
+}
+
+.toast-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.toast-close-btn:hover {
+  color: var(--color-red);
+}
+
+.toast-body {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.toast-body strong {
+  color: var(--color-green);
+}
+
+.toast-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.toast-action-btn {
+  background: rgba(0, 230, 118, 0.15);
+  border: 1px solid var(--color-green);
+  color: var(--color-green);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toast-action-btn:hover {
+  background: var(--color-green);
+  color: #000;
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-100%) scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
