@@ -196,11 +196,59 @@ async function fetchWithTimeout(resource, options = {}) {
 
 // 4. API로부터 실시간 가격 및 시장 데이터를 수집하는 함수 (Fetch Market Data)
 async function fetchRealtimeMarketData(symbol) {
-  const coinIds = { "SOL": "solana", "BTC": "bitcoin", "ETH": "ethereum" };
-  let id = coinIds[symbol];
-  if (!id) {
-    id = symbol.toLowerCase();
+  // 바이낸스 API (Binance API) 우선 시도 - CORS 제한이 없고 1달러 미만 토큰의 정밀 표기 지원
+  try {
+    const binanceUrl = `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}USDT`;
+    const response = await fetchWithTimeout(binanceUrl, { timeout: 2000 });
+    if (response.ok) {
+      const data = await response.json();
+      const priceVal = parseFloat(data.lastPrice);
+      const changeVal = parseFloat(data.priceChangePercent);
+      const volumeVal = parseFloat(data.quoteVolume); // 24시간 거래대금 (USDT 기준)
+
+      if (!isNaN(priceVal)) {
+        // 1달러 미만의 토큰(SUI 등)은 소수점 4자리까지, 그 외에는 소수점 2자리까지 표기
+        const formattedPrice = priceVal < 1.0
+          ? `$${priceVal.toFixed(4)}`
+          : `$${priceVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+        const formattedChange = `${changeVal >= 0 ? '↑' : '↓'} ${Math.abs(changeVal).toFixed(2)}% (24h)`;
+        const formattedVol = `$${(volumeVal / 1e6).toFixed(2)}M`;
+
+        // 시가총액(Market Cap)은 백업 데이터베이스의 비율을 기반으로 실시간 가격 비례 계산
+        const fallback = fallbackDatabase[symbol];
+        let formattedMCap = "$0.00";
+        if (fallback) {
+          const fallbackPrice = parseFloat(fallback.price.replace(/[^0-9.-]+/g, ""));
+          const fallbackMCap = parseFloat(fallback.marketCap.replace(/[^0-9.-]+/g, ""));
+          const isBillion = fallback.marketCap.includes("B");
+
+          if (!isNaN(fallbackPrice) && !isNaN(fallbackMCap) && fallbackPrice > 0) {
+            const ratio = priceVal / fallbackPrice;
+            const estimatedMCap = fallbackMCap * ratio;
+            formattedMCap = `$${estimatedMCap.toFixed(2)}${isBillion ? 'B' : 'M'}`;
+          } else {
+            formattedMCap = fallback.marketCap;
+          }
+        }
+
+        return {
+          price: formattedPrice,
+          change: formattedChange,
+          isPositive: changeVal >= 0,
+          marketCap: formattedMCap,
+          volume: formattedVol,
+          rawPrice: priceVal
+        };
+      }
+    }
+  } catch (error) {
+    console.warn("Binance API 실시간 시세 수집 실패, CoinGecko 시도:", error.message);
   }
+
+  // 코인게코 API (CoinGecko API) 백업 시도
+  const coinIds = { "SOL": "solana", "BTC": "bitcoin", "ETH": "ethereum" };
+  let id = coinIds[symbol] || symbol.toLowerCase();
 
   try {
     const url = `${COINGECKO_API}?ids=${id}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`;
@@ -210,7 +258,11 @@ async function fetchRealtimeMarketData(symbol) {
     const tokenInfo = data[id];
 
     if (tokenInfo) {
-      const formattedPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(tokenInfo.usd);
+      const priceVal = tokenInfo.usd;
+      const formattedPrice = priceVal < 1.0
+        ? `$${priceVal.toFixed(4)}`
+        : `$${priceVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
       const changeVal = tokenInfo.usd_24h_change;
       const formattedChange = `${changeVal >= 0 ? '↑' : '↓'} ${Math.abs(changeVal).toFixed(2)}% (24h)`;
       const formattedMCap = `$${(tokenInfo.usd_market_cap / 1e9).toFixed(2)}B`;
@@ -221,7 +273,8 @@ async function fetchRealtimeMarketData(symbol) {
         change: formattedChange,
         isPositive: changeVal >= 0,
         marketCap: formattedMCap,
-        volume: formattedVol
+        volume: formattedVol,
+        rawPrice: priceVal
       };
     }
   } catch (error) {
