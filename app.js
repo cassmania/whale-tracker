@@ -356,15 +356,24 @@ const alertToggle = document.getElementById("alert-toggle");
 const toastContainer = document.getElementById("toast-container");
 const recentSearchesList = document.getElementById("recent-searches-list");
 const recentSearchesContainer = document.getElementById("recent-searches-container");
+const surgeFeedList = document.getElementById("surge-feed-list");
+const clearFeedBtn = document.getElementById("clear-feed-btn");
 
 // 초기 실행 (Initialization)
 document.addEventListener("DOMContentLoaded", async () => {
   await selectToken("SOL");
   generateHeatmapGrid();
   
-  // 추가 기능 초기화 (최근 검색 기록 & 급등 알림)
+  // 추가 기능 초기화 (최근 검색 기록 & 급등 알림 & 감지 피드)
   updateHistoryUI();
   initSurgeAlert();
+  updateFeedUI();
+
+  if (clearFeedBtn) {
+    clearFeedBtn.addEventListener("click", () => {
+      clearFeedData();
+    });
+  }
   
   // 검색어 입력
   tokenSearch.addEventListener("input", (e) => {
@@ -1038,6 +1047,9 @@ function triggerSurgeAlert(symbol, pct, currentPrice) {
   const title = `🚨 [급등 감지] ${symbol} 세력 매집 급상승!`;
   const message = `${symbol} 토큰이 단시간에 +${pct}% 상승하여 ${currentPrice}에 도달했습니다. 실시간 온체인 리포트를 확인하세요!`;
   
+  // 실시간 급등 피드 패널에 기록 추가
+  addAlertToFeed(symbol, "PUMP", `단시간에 +${pct}% 급상승하여 ${currentPrice} 도달`, `+${pct}%`);
+  
   // 1. OS 시스템 알림 발송 (허용되어 있는 경우)
   if ("Notification" in window && Notification.permission === "granted") {
     new Notification(title, {
@@ -1094,8 +1106,11 @@ function triggerSurgeAlert(symbol, pct, currentPrice) {
   }
 }
 
-// 급등 전조 선행 알림 발송 (인앱 토스트 + 시스템 알림)
+// 급등 전 선행 알림 발송 (인앱 토스트 + 시스템 알림)
 function triggerPreSurgeAlert(symbol, title, message, badge) {
+  // 실시간 급등 전조 피드 패널에 기록 추가
+  addAlertToFeed(symbol, "PRE-SURGE", message, "전조 감지");
+  
   // 1. OS 시스템 알림 발송
   if ("Notification" in window && Notification.permission === "granted") {
     new Notification(title, {
@@ -1165,4 +1180,78 @@ function triggerPreSurgeAlert(symbol, title, message, badge) {
       }
     }, 7500);
   }
+}
+
+// ==================== 7. 실시간 급등/전조 감지 피드 (Surge/Pre-Surge Feed) ====================
+function getFeedData() {
+  const feed = localStorage.getItem("whale_tracker_feed");
+  return feed ? JSON.parse(feed) : [];
+}
+
+function addAlertToFeed(symbol, type, message, changeText) {
+  const feed = getFeedData();
+  const timeStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  
+  const newItem = {
+    symbol: symbol,
+    type: type, // "PUMP" 또는 "PRE-SURGE"
+    message: message,
+    changeText: changeText,
+    time: timeStr
+  };
+  
+  // 맨 앞에 삽입하고 최대 15개까지만 유지
+  feed.unshift(newItem);
+  if (feed.length > 15) {
+    feed.pop();
+  }
+  
+  localStorage.setItem("whale_tracker_feed", JSON.stringify(feed));
+  updateFeedUI();
+}
+
+function clearFeedData() {
+  localStorage.removeItem("whale_tracker_feed");
+  updateFeedUI();
+}
+
+function updateFeedUI() {
+  const feed = getFeedData();
+  if (!surgeFeedList) return;
+  
+  surgeFeedList.innerHTML = "";
+  
+  if (feed.length === 0) {
+    surgeFeedList.innerHTML = `<div class="feed-empty" id="feed-empty-msg">실시간 세력 감지 대기 중...</div>`;
+    return;
+  }
+  
+  feed.forEach(item => {
+    const el = document.createElement("div");
+    const isPump = item.type === "PUMP";
+    el.className = `feed-item ${isPump ? 'pump-item' : 'pre-surge-item'}`;
+    
+    el.innerHTML = `
+      <div class="feed-item-left">
+        <div class="feed-item-meta">
+          <span class="feed-item-symbol">${item.symbol}</span>
+          <span class="feed-item-badge ${isPump ? 'pump' : 'pre-surge'}">${item.type}</span>
+          <span class="feed-item-time">${item.time}</span>
+        </div>
+        <div class="feed-item-text">${item.message}</div>
+      </div>
+      <div class="feed-item-right">
+        <span class="feed-item-change ${isPump ? 'up' : 'warning'}">${item.changeText}</span>
+        <button class="feed-item-btn" data-symbol="${item.symbol}">분석</button>
+      </div>
+    `;
+    
+    el.querySelector(".feed-item-btn").addEventListener("click", async () => {
+      tokenSearch.value = item.symbol;
+      await selectToken(item.symbol);
+      startAnalysisWorkflow();
+    });
+    
+    surgeFeedList.appendChild(el);
+  });
 }
