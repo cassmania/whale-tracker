@@ -130,6 +130,25 @@ const fallbackDatabase = {
 let currentSelectedToken = "SOL";
 let currentSelectedWindow = "1주";
 
+// 타임아웃 기능이 포함된 fetch 함수 (Fetch with Timeout)
+// 기술 설명: 지정된 시간(밀리초) 이내에 네트워크 응답이 없을 경우 요청을 강제로 차단(Abort)하는 래퍼(Wrapper) 함수입니다.
+async function fetchWithTimeout(resource, options = {}) {
+  const { timeout = 2000 } = options;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(resource, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+}
+
 // 4. API로부터 실시간 가격 및 시장 데이터를 수집하는 함수 (Fetch Market Data)
 async function fetchRealtimeMarketData(symbol) {
   const coinIds = { "SOL": "solana", "BTC": "bitcoin", "ETH": "ethereum" };
@@ -138,7 +157,7 @@ async function fetchRealtimeMarketData(symbol) {
 
   try {
     const url = `${COINGECKO_API}?ids=${id}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`;
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
     if (!response.ok) throw new Error("CoinGecko API 응답 실패");
     const data = await response.json();
     const tokenInfo = data[id];
@@ -168,8 +187,8 @@ async function fetchRealtimeMarketData(symbol) {
 async function fetchRealtimeOnchainData(symbol) {
   try {
     if (symbol === "SOL") {
-      // 5-1. 솔라나 메인넷 JSON-RPC 연동
-      const response = await fetch(SOLANA_RPC, {
+      // 5-1. 솔라나 메인넷 JSON-RPC 연동 (CORS 차단 방지를 위해 2초 타임아웃 강제 적용)
+      const response = await fetchWithTimeout(SOLANA_RPC, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify([
@@ -194,7 +213,7 @@ async function fetchRealtimeOnchainData(symbol) {
     } else if (symbol === "BTC" || symbol === "ETH") {
       // 5-2. 비트코인 및 이더리움 Blockchair API 연동
       const pathName = symbol === "BTC" ? "bitcoin" : "ethereum";
-      const response = await fetch(`https://api.blockchair.com/${pathName}/stats`);
+      const response = await fetchWithTimeout(`https://api.blockchair.com/${pathName}/stats`);
       if (!response.ok) throw new Error("Blockchair API 응답 실패");
       const body = await response.json();
       const stats = body.data;
