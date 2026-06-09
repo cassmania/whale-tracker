@@ -1524,3 +1524,94 @@ function updateFeedUI() {
     surgeFeedList.appendChild(el);
   });
 }
+
+// ==================== 8. 알림 센터 패널 기능 (Notification Center Panel) ====================
+function getNotifications() {
+  const list = localStorage.getItem("whale_tracker_notifications");
+  return list ? JSON.parse(list) : [];
+}
+
+function saveNotification(item) {
+  const list = getNotifications();
+  // 고유 아이디 생성
+  item.id = Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+  item.time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  item.isRead = false;
+  
+  list.unshift(item);
+  if (list.length > 30) {
+    list.pop();
+  }
+  localStorage.setItem("whale_tracker_notifications", JSON.stringify(list));
+  updateNotificationUI();
+}
+
+function clearNotifications() {
+  localStorage.setItem("whale_tracker_notifications", JSON.stringify([]));
+  updateNotificationUI();
+}
+
+function updateNotificationUI() {
+  const list = getNotifications();
+  if (!notificationList) return;
+  
+  notificationList.innerHTML = "";
+  
+  if (list.length === 0) {
+    notificationList.innerHTML = `<div class="panel-empty">수신된 세력 감지 알림이 없습니다.</div>`;
+    if (notificationBadge) {
+      notificationBadge.style.display = "none";
+    }
+    return;
+  }
+  
+  // 안 읽은 알림 개수 계산
+  const unreadCount = list.filter(item => !item.isRead).length;
+  if (notificationBadge) {
+    if (unreadCount > 0) {
+      notificationBadge.textContent = unreadCount;
+      notificationBadge.style.display = "flex";
+    } else {
+      notificationBadge.style.display = "none";
+    }
+  }
+  
+  list.forEach(item => {
+    const el = document.createElement("div");
+    const isPump = item.type === "PUMP";
+    
+    // 클래스 적용 (css에 정의된 스타일에 맞춰 적용)
+    el.className = `notification-item ${isPump ? '' : 'pre-surge-notif'}`;
+    
+    el.innerHTML = `
+      <div class="notification-item-header">
+        <span class="notification-item-title">
+          ${isPump ? '🚨' : '🔥'} [${item.symbol}] ${item.type}
+        </span>
+        <span class="notification-item-time">${item.time}</span>
+      </div>
+      <div class="notification-item-body">
+        ${item.body}
+      </div>
+    `;
+    
+    // 알림 카드 클릭 시 해당 심볼 분석 자동 실행
+    el.addEventListener("click", async () => {
+      // 패널 닫기
+      if (notificationPanel) {
+        notificationPanel.classList.remove("active");
+      }
+      
+      // 화면 전환을 고려해 홈화면으로 복구
+      reportScreen.classList.remove("active");
+      homeScreen.classList.add("active");
+      
+      // 검색어 설정 및 분석
+      tokenSearch.value = item.symbol;
+      await selectToken(item.symbol);
+      startAnalysisWorkflow();
+    });
+    
+    notificationList.appendChild(el);
+  });
+}
