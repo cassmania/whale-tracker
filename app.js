@@ -1127,7 +1127,6 @@ function startAnalysisWorkflow() {
       setTimeout(() => {
         loaderScreen.classList.remove("active");
         homeScreen.classList.add("active");
-        alert("분석 수행 중 오류가 발생하였습니다: " + (err.message || err));
       }, 3000);
     }
   }, 2000);
