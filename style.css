@@ -44,7 +44,7 @@ body {
 
 .app-container {
   width: 100%;
-  max-width: 480px;
+  max-width: 960px; /* 480px * 2 */
   height: 100vh;
   min-height: 720px;
   background-color: var(--bg-color-main);
@@ -52,10 +52,20 @@ body {
   position: relative;
   overflow: hidden;
   display: flex;
+  flex-direction: row; /* 가로 나열 */
+}
+
+/* 메인 스크린 영역 */
+.main-content {
+  width: 50%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
   flex-direction: column;
 }
 
-@media (min-width: 480px) {
+@media (min-width: 960px) {
   .app-container {
     height: 92vh;
     border-radius: 28px;
@@ -1648,24 +1658,44 @@ input:checked + .slider:before {
 }
 
 .notification-panel {
-  position: absolute;
-  top: 0;
-  right: -100%; /* 우측 화면 바깥으로 숨김 */
-  width: 290px;
+  width: 50%; /* 960px의 절반 = 480px */
   height: 100%;
-  background: rgba(8, 12, 18, 0.96);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--bg-color-main);
   border-left: 1px solid var(--border-color);
-  z-index: 150;
   display: flex;
   flex-direction: column;
-  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.6);
+  position: relative; /* 절대 좌표 해제 */
+  right: 0;
+  z-index: 10;
+  box-shadow: none;
 }
 
 .notification-panel.active {
-  right: 0; /* 우측에서 슬라이딩 인 */
+  right: 0;
+}
+
+/* 960px 미만 화면 (모바일 대응 세로 스택) */
+@media (max-width: 960px) {
+  .app-container {
+    max-width: 480px;
+    flex-direction: column;
+    height: auto;
+    overflow-y: auto;
+  }
+  
+  .main-content {
+    width: 100%;
+    height: 100vh;
+    min-height: 720px;
+  }
+  
+  .notification-panel {
+    width: 100%;
+    height: 100vh;
+    min-height: 720px;
+    border-left: none;
+    border-top: 1px solid var(--border-color);
+  }
 }
 
 .panel-header {
