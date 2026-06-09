@@ -1311,144 +1311,35 @@ function stopAlertMonitoring() {
   }
 }
 
-// 인앱 토스트 팝업 및 OS 네이티브 알림 발생
+// 인앱 토스트 팝업 및 OS 네이티브 알림 발생 (사용자 피드백으로 패널 알림으로 일체화)
 function triggerSurgeAlert(symbol, pct, currentPrice) {
   const title = `🚨 [급등 감지] ${symbol} 세력 매집 급상승!`;
-  const message = `${symbol} 토큰이 단시간에 +${pct}% 상승하여 ${currentPrice}에 도달했습니다. 실시간 온체인 리포트를 확인하세요!`;
+  const message = `${symbol} 토큰이 단시간에 +${pct}% 상승하여 ${currentPrice}에 도달했습니다.`;
   
   // 실시간 급등 피드 패널에 기록 추가
   addAlertToFeed(symbol, "PUMP", `단시간에 +${pct}% 급상승하여 ${currentPrice} 도달`, `+${pct}%`);
   
-  // 1. OS 시스템 알림 발송 (허용되어 있는 경우)
-  if ("Notification" in window && Notification.permission === "granted") {
-    new Notification(title, {
-      body: message,
-      icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' rx='50' fill='%23111'><text x='50%25' y='72%25' font-size='60' fill='%2300ffaa' font-family='Outfit' font-weight='800' text-anchor='middle'>🐳</text></svg>"
-    });
-  }
-  
-  // 2. 인앱 토스트 알림 카드 생성
-  if (toastContainer) {
-    const toast = document.createElement("div");
-    toast.className = "toast-alert";
-    toast.innerHTML = `
-      <div class="toast-header">
-        <span class="toast-title">🐳 WHALE PUMP ALERT</span>
-        <button class="toast-close-btn">&times;</button>
-      </div>
-      <div class="toast-body">
-        <strong>${symbol}</strong> 토큰이 단시간에 <strong>+${pct}%</strong> 급등하여 <strong>${currentPrice}</strong>에 도달했습니다!
-      </div>
-      <div class="toast-footer">
-        <button class="toast-action-btn" data-symbol="${symbol}">온체인 분석</button>
-      </div>
-    `;
-    
-    // 닫기 버튼
-    toast.querySelector(".toast-close-btn").addEventListener("click", () => {
-      toast.classList.add("fade-out");
-      setTimeout(() => toast.remove(), 350);
-    });
-    
-    // 온체인 분석 버튼 누를 시 대상 분석 실행 및 홈 복귀
-    toast.querySelector(".toast-action-btn").addEventListener("click", async () => {
-      toast.classList.add("fade-out");
-      setTimeout(() => toast.remove(), 350);
-      
-      reportScreen.classList.remove("active");
-      homeScreen.classList.add("active");
-      
-      tokenSearch.value = symbol;
-      await selectToken(symbol);
-      startAnalysisWorkflow();
-    });
-    
-    toastContainer.appendChild(toast);
-    
-    // 6초 후 자동 제거
-    setTimeout(() => {
-      if (toast.parentElement) {
-        toast.classList.add("fade-out");
-        setTimeout(() => toast.remove(), 350);
-      }
-    }, 6000);
-  }
+  // 알림 내역 패널에 저장 (인앱 팝업/OS 푸시 배제)
+  saveNotification({
+    symbol: symbol,
+    type: "PUMP",
+    title: title,
+    body: message
+  });
 }
 
-// 급등 전 선행 알림 발송 (인앱 토스트 + 시스템 알림)
+// 급등 전 선행 알림 발송 (사용자 피드백으로 패널 알림으로 일체화)
 function triggerPreSurgeAlert(symbol, title, message, badge) {
   // 실시간 급등 전조 피드 패널에 기록 추가
   addAlertToFeed(symbol, "PRE-SURGE", message, "전조 감지");
   
-  // 1. OS 시스템 알림 발송
-  if ("Notification" in window && Notification.permission === "granted") {
-    new Notification(title, {
-      body: message,
-      icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' rx='50' fill='%23111'><text x='50%25' y='72%25' font-size='60' fill='%23ffb300' font-family='Outfit' font-weight='800' text-anchor='middle'>🔥</text></svg>"
-    });
-  }
-  
-  // 2. 인앱 토스트 알림 카드 생성
-  if (toastContainer) {
-    const toast = document.createElement("div");
-    // 예치/매집 알림은 골드/옐로우 테두리로 차별화
-    toast.className = "toast-alert";
-    toast.style.borderColor = "var(--color-yellow)";
-    toast.style.boxShadow = "0 10px 30px rgba(255, 179, 0, 0.15), inset 0 0 15px rgba(255, 179, 0, 0.05)";
-    
-    toast.innerHTML = `
-      <div class="toast-header">
-        <span class="toast-title" style="color: var(--color-yellow)">🐳 ${badge} SIGNAL</span>
-        <button class="toast-close-btn">&times;</button>
-      </div>
-      <div class="toast-body">
-        ${message}
-      </div>
-      <div class="toast-footer">
-        <button class="toast-action-btn" style="background: rgba(255,179,0,0.15); border-color: var(--color-yellow); color: var(--color-yellow)" data-symbol="${symbol}">온체인 7지표 확인</button>
-      </div>
-    `;
-    
-    // 온체인 분석 버튼 커스텀 스타일 액션
-    const actionBtn = toast.querySelector(".toast-action-btn");
-    actionBtn.addEventListener("mouseover", () => {
-      actionBtn.style.background = "var(--color-yellow)";
-      actionBtn.style.color = "#000";
-    });
-    actionBtn.addEventListener("mouseout", () => {
-      actionBtn.style.background = "rgba(255,179,0,0.15)";
-      actionBtn.style.color = "var(--color-yellow)";
-    });
-    
-    // 닫기 버튼
-    toast.querySelector(".toast-close-btn").addEventListener("click", () => {
-      toast.classList.add("fade-out");
-      setTimeout(() => toast.remove(), 350);
-    });
-    
-    // 온체인 분석 버튼 누를 시 대상 분석 실행 및 홈 복귀
-    actionBtn.addEventListener("click", async () => {
-      toast.classList.add("fade-out");
-      setTimeout(() => toast.remove(), 350);
-      
-      reportScreen.classList.remove("active");
-      homeScreen.classList.add("active");
-      
-      tokenSearch.value = symbol;
-      await selectToken(symbol);
-      startAnalysisWorkflow();
-    });
-    
-    toastContainer.appendChild(toast);
-    
-    // 7.5초 후 자동 제거
-    setTimeout(() => {
-      if (toast.parentElement) {
-        toast.classList.add("fade-out");
-        setTimeout(() => toast.remove(), 350);
-      }
-    }, 7500);
-  }
+  // 알림 내역 패널에 저장 (인앱 팝업/OS 푸시 배제)
+  saveNotification({
+    symbol: symbol,
+    type: "PRE-SURGE",
+    title: title,
+    body: message
+  });
 }
 
 // ==================== 7. 실시간 급등/전조 감지 피드 (Surge/Pre-Surge Feed) ====================
