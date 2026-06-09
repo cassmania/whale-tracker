@@ -580,19 +580,60 @@ const recentSearchesContainer = document.getElementById("recent-searches-contain
 const surgeFeedList = document.getElementById("surge-feed-list");
 const clearFeedBtn = document.getElementById("clear-feed-btn");
 
+// 알림 센터 패널 관련 DOM 바인딩
+const notificationPanel = document.getElementById("notification-panel");
+const notificationToggleBtn = document.getElementById("notification-toggle-btn");
+const closePanelBtn = document.getElementById("close-panel-btn");
+const clearNotificationsBtn = document.getElementById("clear-notifications-btn");
+const notificationList = document.getElementById("notification-list");
+const notificationBadge = document.getElementById("notification-badge");
+
 // 초기 실행 (Initialization)
 document.addEventListener("DOMContentLoaded", async () => {
   await selectToken("SOL");
   generateHeatmapGrid();
   
-  // 추가 기능 초기화 (최근 검색 기록 & 급등 알림 & 감지 피드)
+  // 추가 기능 초기화 (최근 검색 기록 & 급등 알림 & 감지 피드 & 알림 센터)
   updateHistoryUI();
   initSurgeAlert();
   updateFeedUI();
+  updateNotificationUI();
 
   if (clearFeedBtn) {
     clearFeedBtn.addEventListener("click", () => {
       clearFeedData();
+    });
+  }
+
+  // 알림 토글 버튼 클릭 시 패널 표시/숨김 및 읽음 처리
+  if (notificationToggleBtn) {
+    notificationToggleBtn.addEventListener("click", () => {
+      if (notificationPanel) {
+        const isActive = notificationPanel.classList.toggle("active");
+        if (isActive) {
+          // 패널이 열리면 모든 알림을 읽음 처리
+          const list = getNotifications();
+          list.forEach(item => item.isRead = true);
+          localStorage.setItem("whale_tracker_notifications", JSON.stringify(list));
+          updateNotificationUI();
+        }
+      }
+    });
+  }
+
+  // 알림 센터 닫기 버튼
+  if (closePanelBtn) {
+    closePanelBtn.addEventListener("click", () => {
+      if (notificationPanel) {
+        notificationPanel.classList.remove("active");
+      }
+    });
+  }
+
+  // 알림 전체 삭제 버튼
+  if (clearNotificationsBtn) {
+    clearNotificationsBtn.addEventListener("click", () => {
+      clearNotifications();
     });
   }
   
