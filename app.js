@@ -165,6 +165,110 @@ const fallbackDatabase = {
         { item: "고래(Whale) 유입", result: "X 12개 지갑 유출", isOk: false, detail: "순플로우 -$89M" }
       ]
     }
+  },
+  "SUI": {
+    symbol: "SUI", name: "Sui", rank: "#52",
+    price: "$0.7540", change: "↑ 1.25% (24h)", isPositive: true,
+    marketCap: "$2.08B", volume: "$180.00M", website: "sui.io", websiteUrl: "https://sui.io",
+    phaseStatus: "매집 중 · 세력 유입 신호", sliderPercent: 42, forceScore: 68, confidence: 60,
+    finalPhaseStatus: "매집 강세", finalPhaseDesc: "→ DEX 상위 스마트 지갑 매수 우위 지속",
+    whalePresence: "확인됨 / MM 주도 유동성 확대",
+    altForceDetails: {
+      smartMoney: "DEX 신규 고래 지갑 8개 매집",
+      whale: "순유입 +$1.2M",
+      mm: "MM 지갑 라벨 [0x7sui...]을 통한 호가창 공급 안정"
+    },
+    patternDetails: {
+      categoryPct: "12.5%",
+      general: "레이어1 신흥 생태계 정상 보유 분포"
+    },
+    flowDetails: {
+      cex: "-$350K (순유출)",
+      net: "+$1.55M",
+      smartNet: "+$420K"
+    },
+    risks: [
+      "<strong>신생 메인넷 락업 해제</strong> · 초기 토크노믹스 배분 물량 공급 오버행 주의",
+      "<strong>DEX 풀 변동성</strong> · 급격한 TVL 유출입 시 디파이 생태계 수수료 증가 발생 가능"
+    ],
+    indicators: [
+      { name: "24h 트랜잭션 수", signal: "8,940,210건", isOk: true, desc: "✓ 수이 네트워크 거래 활성화" },
+      { name: "평균 전송 수수료 (USD)", signal: "$0.003", isOk: true, desc: "✓ 매우 저렴한 트랜잭션 수수료 유지" },
+      { name: "전체 블록 높이 (Height)", signal: "45,890,123", isOk: true, desc: "✓ 검증인 합의 알고리즘 정상" },
+      { name: "Top 100 지갑 잔고", signal: "+0.15% 증가", isOk: true, desc: "✓ 상위 홀더들의 잔고 점진적 집중" },
+      { name: "신규 지갑 유입", signal: "+$45M (7일)", isOk: true, desc: "✓ 디파이 생태계 TVL 확대" }
+    ],
+    evidence: {
+      bull: [
+        "Sui Foundation 보조금 지급 관련 생태계 활성화 및 TVL 순유입",
+        "Cetus 및 Scallop 등 주요 디파이 거래소 내 고래 예치 규모 확대"
+      ],
+      bear: [
+        "거래소 지갑으로 향하는 단기 대규모 이체 트래픽 소폭 확인"
+      ]
+    },
+    distribution: {
+      donutMsg: "거래소(18%), 고래(22%), 재단(35%), 일반(25%) 분포 완료.",
+      interpretation: "신규 L1 생태계 특성상 재단 보유 물량이 높으나, 최근 일반 지갑 및 스마트머니 비율이 전주 대비 2.4% 상승하여 긍정적입니다.",
+      heatmapSub: "7일 매집/분배 히트맵 · SUI 탑 지갑",
+      heatmapMsg: "디파이 예치 지갑 위주로 지속적인 매집 패턴이 시각화되었습니다.",
+      presence: [
+        { item: "스마트머니 대규모 유입", result: "✓ 유입 감지", isOk: true, detail: "DEX 신규 지갑 활성" },
+        { item: "고래(Whale) 유입", result: "✓ 18개 지갑", isOk: true, detail: "순플로우 +$1.2M" }
+      ]
+    }
+  },
+  "AAVE": {
+    symbol: "AAVE", name: "Aave", rank: "#68",
+    price: "$85.50", change: "↓ 0.45% (24h)", isPositive: false,
+    marketCap: "$1.25B", volume: "$95.00M", website: "aave.com", websiteUrl: "https://aave.com",
+    phaseStatus: "혼조 · 기관 축적세", sliderPercent: 48, forceScore: 55, confidence: 60,
+    finalPhaseStatus: "중립 매집", finalPhaseDesc: "→ 장기 스테이킹 안정화 및 렌딩 풀 이자율 보합",
+    whalePresence: "일반 고래 지갑 잔고 변동 보합세",
+    altForceDetails: {
+      smartMoney: "스마트머니 DEX 유동성 소폭 매도 후 관망",
+      whale: "순유출 -$150K",
+      mm: "Aave V3 풀 유동성 회수 흔적 없음"
+    },
+    patternDetails: {
+      categoryPct: "28.5%",
+      general: "디파이 거버넌스 토큰 전형적 분포"
+    },
+    flowDetails: {
+      cex: "+$120K (순입금)",
+      net: "-$30K",
+      smartNet: "-$15K"
+    },
+    risks: [
+      "<strong>렌딩 풀 청산 리스크</strong> · 메이저 자산 가격 폭락 시 스마트 컨트랙트 강제 청산 물량 발생 가능",
+      "<strong>경쟁 프로토콜 대두</strong> · 신규 디파이 렌딩 서비스 성장에 따른 시장 점유율 이탈 우려"
+    ],
+    indicators: [
+      { name: "24h 트랜잭션 수", signal: "12,450건", isOk: true, desc: "✓ 거버넌스 및 대출 계약 활동성 원활" },
+      { name: "평균 전송 수수료 (USD)", signal: "$2.150", isOk: false, desc: "✗ 이더리움 가스비 연동으로 다소 높음" },
+      { name: "전체 블록 높이 (Height)", signal: "19,410,250", isOk: true, desc: "✓ 메인넷 정상 동작" },
+      { name: "Top 100 지갑 잔고", signal: "-0.05% 감소", isOk: false, desc: "✗ 상위 지갑의 소량 분산 관찰" },
+      { name: "신규 지갑 유입", signal: "+$12M (7일)", isOk: true, desc: "✓ 디파이 참여자 유입" }
+    ],
+    evidence: {
+      bull: [
+        "Aave Safety Module 내 거버넌스 토큰 스테이킹 이율 보합 유지",
+        "Aave V3 이더리움 렌딩 TVL 안정적 상승세 지속"
+      ],
+      bear: [
+        "거버넌스 홀더 지갑 일부에서 소액 거래소 송금 감지"
+      ]
+    },
+    distribution: {
+      donutMsg: "스테이킹(35%), 거래소(15%), 고래(28%), 일반(22%) 분포",
+      interpretation: "스테이킹 비율이 높아 유통 충격이 덜하지만 거버넌스 투표율에 따라 단기적 수급 변화가 있을 수 있습니다.",
+      heatmapSub: "7일 매집/분배 히트맵 · AAVE 분석",
+      heatmapMsg: "기관 대출 지갑의 트랜잭션이 산발적으로 포착되고 있습니다.",
+      presence: [
+        { item: "스마트머니 대규모 유입", result: "X 없음", isOk: false, detail: "DEX 주요 트레이더 관망" },
+        { item: "고래(Whale) 유입", result: "X 3개 지갑 유출", isOk: false, detail: "순플로우 -$150K" }
+      ]
+    }
   }
 };
 
