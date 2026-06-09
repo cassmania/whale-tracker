@@ -29,6 +29,9 @@ jobs:
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
+        with:
+          # Pages가 활성화되지 않은 경우 자동으로 활성화 시도 (Enablement)
+          enablement: true
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
