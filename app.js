@@ -298,9 +298,98 @@ async function fetchWithTimeout(resource, options = {}) {
   }
 }
 
+// 시장 데이터를 통일된 형식으로 정밀 변형해주는 헬퍼 함수 (Format Market Data)
+function formatMarketData(symbol, priceVal, changeVal, volumeVal) {
+  // 1달러 미만의 토큰(SUI 등)은 소수점 4자리까지, 그 외에는 소수점 2자리까지 표기
+  const formattedPrice = priceVal < 1.0
+    ? `$${priceVal.toFixed(4)}`
+    : `$${priceVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const formattedChange = `${changeVal >= 0 ? '↑' : '↓'} ${Math.abs(changeVal).toFixed(2)}% (24h)`;
+  
+  // 24시간 거래대금 포맷팅
+  let formattedVol = "$0.00";
+  if (volumeVal >= 1e9) {
+    formattedVol = `$${(volumeVal / 1e9).toFixed(2)}B`;
+  } else {
+    formattedVol = `$${(volumeVal / 1e6).toFixed(2)}M`;
+  }
+
+  // 시가총액(Market Cap)은 백업 데이터베이스의 비율을 기반으로 실시간 가격 비례 계산
+  const fallback = fallbackDatabase[symbol];
+  let formattedMCap = "$0.00";
+  if (fallback) {
+    const fallbackPrice = parseFloat(fallback.price.replace(/[^0-9.-]+/g, ""));
+    const fallbackMCap = parseFloat(fallback.marketCap.replace(/[^0-9.-]+/g, ""));
+    const isBillion = fallback.marketCap.includes("B");
+
+    if (!isNaN(fallbackPrice) && !isNaN(fallbackMCap) && fallbackPrice > 0) {
+      const ratio = priceVal / fallbackPrice;
+      const estimatedMCap = fallbackMCap * ratio;
+      if (isBillion) {
+        formattedMCap = `$${estimatedMCap.toFixed(2)}B`;
+      } else {
+        formattedMCap = `$${estimatedMCap.toFixed(2)}M`;
+      }
+    } else {
+      formattedMCap = fallback.marketCap;
+    }
+  }
+
+  return {
+    price: formattedPrice,
+    change: formattedChange,
+    isPositive: changeVal >= 0,
+    marketCap: formattedMCap,
+    volume: formattedVol,
+    rawPrice: priceVal
+  };
+}
+
 // 4. API로부터 실시간 가격 및 시장 데이터를 수집하는 함수 (Fetch Market Data)
 async function fetchRealtimeMarketData(symbol) {
-  // 바이낸스 API (Binance API) 우선 시도 - CORS 제한이 없고 1달러 미만 토큰의 정밀 표기 지원
+  // 1) Bybit API (Spot Tickers) 우선 시도 - 브라우저 CORS 제한 없고 무중단 속도 우수
+  try {
+    const bybitUrl = `https://api.bybit.com/v5/market/tickers?category=spot&symbol=${symbol}USDT`;
+    const response = await fetchWithTimeout(bybitUrl, { timeout: 2000 });
+    if (response.ok) {
+      const res = await response.json();
+      if (res.retCode === 0 && res.result && res.result.list && res.result.list.length > 0) {
+        const ticker = res.result.list[0];
+        const priceVal = parseFloat(ticker.lastPrice);
+        const changeVal = parseFloat(ticker.price24hPcnt) * 100;
+        const volumeVal = parseFloat(ticker.turnover24h || 0);
+        if (!isNaN(priceVal)) {
+          return formatMarketData(symbol, priceVal, changeVal, volumeVal);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn("Bybit API 실시간 시세 수집 실패:", error.message);
+  }
+
+  // 2) OKX API (Ticker) 시도 - CORS 제한 없음
+  try {
+    const okxUrl = `https://www.okx.com/api/v5/market/ticker?instId=${symbol}-USDT`;
+    const response = await fetchWithTimeout(okxUrl, { timeout: 2000 });
+    if (response.ok) {
+      const res = await response.json();
+      if (res.code === "0" && res.data && res.data.length > 0) {
+        const ticker = res.data[0];
+        const priceVal = parseFloat(ticker.last);
+        const openVal = parseFloat(ticker.open24h);
+        const changeVal = openVal > 0 ? ((priceVal - openVal) / openVal) * 100 : 0;
+        const volumeVal = parseFloat(ticker.vol24h || 0) * priceVal;
+        if (!isNaN(priceVal)) {
+          return formatMarketData(symbol, priceVal, changeVal, volumeVal);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn("OKX API 실시간 시세 수집 실패:", error.message);
+  }
+
+  // 3) Binance API 시도 (CORS 차단 가능성 존재)
   try {
     const binanceUrl = `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}USDT`;
     const response = await fetchWithTimeout(binanceUrl, { timeout: 2000 });
@@ -308,82 +397,57 @@ async function fetchRealtimeMarketData(symbol) {
       const data = await response.json();
       const priceVal = parseFloat(data.lastPrice);
       const changeVal = parseFloat(data.priceChangePercent);
-      const volumeVal = parseFloat(data.quoteVolume); // 24시간 거래대금 (USDT 기준)
-
+      const volumeVal = parseFloat(data.quoteVolume);
       if (!isNaN(priceVal)) {
-        // 1달러 미만의 토큰(SUI 등)은 소수점 4자리까지, 그 외에는 소수점 2자리까지 표기
-        const formattedPrice = priceVal < 1.0
-          ? `$${priceVal.toFixed(4)}`
-          : `$${priceVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-        const formattedChange = `${changeVal >= 0 ? '↑' : '↓'} ${Math.abs(changeVal).toFixed(2)}% (24h)`;
-        const formattedVol = `$${(volumeVal / 1e6).toFixed(2)}M`;
-
-        // 시가총액(Market Cap)은 백업 데이터베이스의 비율을 기반으로 실시간 가격 비례 계산
-        const fallback = fallbackDatabase[symbol];
-        let formattedMCap = "$0.00";
-        if (fallback) {
-          const fallbackPrice = parseFloat(fallback.price.replace(/[^0-9.-]+/g, ""));
-          const fallbackMCap = parseFloat(fallback.marketCap.replace(/[^0-9.-]+/g, ""));
-          const isBillion = fallback.marketCap.includes("B");
-
-          if (!isNaN(fallbackPrice) && !isNaN(fallbackMCap) && fallbackPrice > 0) {
-            const ratio = priceVal / fallbackPrice;
-            const estimatedMCap = fallbackMCap * ratio;
-            formattedMCap = `$${estimatedMCap.toFixed(2)}${isBillion ? 'B' : 'M'}`;
-          } else {
-            formattedMCap = fallback.marketCap;
-          }
-        }
-
-        return {
-          price: formattedPrice,
-          change: formattedChange,
-          isPositive: changeVal >= 0,
-          marketCap: formattedMCap,
-          volume: formattedVol,
-          rawPrice: priceVal
-        };
+        return formatMarketData(symbol, priceVal, changeVal, volumeVal);
       }
     }
   } catch (error) {
-    console.warn("Binance API 실시간 시세 수집 실패, CoinGecko 시도:", error.message);
+    console.warn("Binance API 실시간 시세 수집 실패:", error.message);
   }
 
-  // 코인게코 API (CoinGecko API) 백업 시도
-  const coinIds = { "SOL": "solana", "BTC": "bitcoin", "ETH": "ethereum" };
-  let id = coinIds[symbol] || symbol.toLowerCase();
-
+  // 4) Gate.io API 시도
   try {
-    const url = `${COINGECKO_API}?ids=${id}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`;
-    const response = await fetchWithTimeout(url);
-    if (!response.ok) throw new Error("CoinGecko API 응답 실패");
-    const data = await response.json();
-    const tokenInfo = data[id];
-
-    if (tokenInfo) {
-      const priceVal = tokenInfo.usd;
-      const formattedPrice = priceVal < 1.0
-        ? `$${priceVal.toFixed(4)}`
-        : `$${priceVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-      const changeVal = tokenInfo.usd_24h_change;
-      const formattedChange = `${changeVal >= 0 ? '↑' : '↓'} ${Math.abs(changeVal).toFixed(2)}% (24h)`;
-      const formattedMCap = `$${(tokenInfo.usd_market_cap / 1e9).toFixed(2)}B`;
-      const formattedVol = `$${(tokenInfo.usd_24h_vol / 1e9).toFixed(2)}B`;
-
-      return {
-        price: formattedPrice,
-        change: formattedChange,
-        isPositive: changeVal >= 0,
-        marketCap: formattedMCap,
-        volume: formattedVol,
-        rawPrice: priceVal
-      };
+    const gateUrl = `https://api.gateio.ws/api/v4/spot/tickers?currency_pair=${symbol}_USDT`;
+    const response = await fetchWithTimeout(gateUrl, { timeout: 2000 });
+    if (response.ok) {
+      const res = await response.json();
+      const ticker = Array.isArray(res) ? res[0] : res;
+      if (ticker) {
+        const priceVal = parseFloat(ticker.last);
+        const changeVal = parseFloat(ticker.change_percentage || 0);
+        const volumeVal = parseFloat(ticker.quote_volume || 0);
+        if (!isNaN(priceVal)) {
+          return formatMarketData(symbol, priceVal, changeVal, volumeVal);
+        }
+      }
     }
   } catch (error) {
-    console.warn("시장 데이터 실시간 수집 실패 (대체 데이터 사용):", error.message);
+    console.warn("Gate.io API 실시간 시세 수집 실패:", error.message);
   }
+
+  // 5) CoinGecko API 백업 시도 (CORS 차단 가능성 높음)
+  const coinIds = { "SOL": "solana", "BTC": "bitcoin", "ETH": "ethereum", "SUI": "sui" };
+  let id = coinIds[symbol] || symbol.toLowerCase();
+  try {
+    const url = `${COINGECKO_API}?ids=${id}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`;
+    const response = await fetchWithTimeout(url, { timeout: 2000 });
+    if (response.ok) {
+      const data = await response.json();
+      const tokenInfo = data[id];
+      if (tokenInfo) {
+        const priceVal = tokenInfo.usd;
+        const changeVal = tokenInfo.usd_24h_change;
+        const volumeVal = tokenInfo.usd_24h_vol;
+        if (!isNaN(priceVal)) {
+          return formatMarketData(symbol, priceVal, changeVal, volumeVal);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn("CoinGecko API 실시간 시세 수집 실패:", error.message);
+  }
+
   return null;
 }
 
