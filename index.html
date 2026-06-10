@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;500;700;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
   <!-- 전체 화면 컨테이너 (Container) -->
@@ -157,19 +157,6 @@
       </div>
     </div>
 
-      <!-- 실시간 세력 포착 피드 패널 (Surge/Pre-Surge Feed Panel) -->
-      <div class="surge-feed-container" id="surge-feed-container">
-        <div class="feed-header">
-          <span class="feed-title">
-            <span class="pulse-dot-red"></span>
-            <span data-i18n="feed-panel-title">실시간 세력 포착 피드 (급등 및 전조)</span>
-          </span>
-          <button id="clear-feed-btn" class="clear-feed-btn" data-i18n="clear-btn">비우기</button>
-        </div>
-        <div class="feed-list" id="surge-feed-list">
-          <div class="feed-empty" id="feed-empty-msg" data-i18n="feed-empty-waiting">실시간 세력 감지 대기 중...</div>
-        </div>
-      </div>
 
       <!-- 분석 기간 설정 (Analysis Window) -->
       <div class="analysis-window-container">
@@ -286,6 +273,52 @@
               <span class="metric-label">Confidence</span>
               <span id="confidence-score" class="metric-value">50<span class="max-val">/100</span></span>
             </div>
+          </div>
+        </section>
+
+        <!-- 데이터 신뢰성 및 정확성 분석 카드 (Data Reliability & Accuracy Analysis) -->
+        <section class="report-card">
+          <div class="flex-row-between card-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 class="card-title-sm" data-i18n="reliability-analysis-title" style="margin-bottom: 0;">🛡️ 데이터 신뢰성 및 정확성 분석</h3>
+            <span class="card-subtitle-tag" id="reliability-tier-val" style="font-family: 'Fira Code', monospace; font-weight: 700; color: var(--color-green);">TIER 1</span>
+          </div>
+          
+          <div class="reliability-grid">
+            <div class="reliability-item">
+              <div class="reliability-label-row">
+                <span class="reliability-label" data-i18n="data-integrity-label">데이터 무결성 (Integrity)</span>
+                <span class="reliability-value" id="data-integrity-val">90%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill green" id="data-integrity-bar" style="width: 90%;"></div>
+              </div>
+            </div>
+            
+            <div class="reliability-item">
+              <div class="reliability-label-row">
+                <span class="reliability-label" data-i18n="data-accuracy-label">분석 정확성 (Accuracy)</span>
+                <span class="reliability-value" id="data-accuracy-val">85%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill blue" id="data-accuracy-bar" style="width: 85%;"></div>
+              </div>
+            </div>
+            
+            <div class="reliability-item">
+              <div class="reliability-label-row">
+                <span class="reliability-label" data-i18n="sample-completeness-label">표본 데이터 충실도 (Completeness)</span>
+                <span class="reliability-value" id="sample-completeness-val">95%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill yellow" id="sample-completeness-bar" style="width: 95%;"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="reliability-summary-box" style="margin-top: 14px; padding: 10px 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px;">
+            <p id="reliability-summary-text" style="font-size: 11px; color: var(--text-secondary); line-height: 1.5;">
+              본 분석 데이터는 실시간 블록체인 노드 데이터와 거래소 유입금 기록을 기반으로 산출되어 매우 높은 무결성을 보입니다. 단, DEX 유동성 계약 조건에 따라 일부 오차가 존재할 수 있습니다.
+            </p>
           </div>
         </section>
 
@@ -493,6 +526,20 @@
     </div>
     </div>
     
+    <!-- ==================== 실시간 세력 포착 피드 패널 (Surge/Pre-Surge Feed Panel) ==================== -->
+    <div class="surge-feed-container" id="surge-feed-container">
+      <div class="feed-header">
+        <span class="feed-title">
+          <span class="pulse-dot-red"></span>
+          <span data-i18n="feed-panel-title">실시간 세력 포착 피드 (급등 및 전조)</span>
+        </span>
+        <button id="clear-feed-btn" class="clear-feed-btn" data-i18n="clear-btn">비우기</button>
+      </div>
+      <div class="feed-list" id="surge-feed-list">
+        <div class="feed-empty" id="feed-empty-msg" data-i18n="feed-empty-waiting">실시간 세력 감지 대기 중...</div>
+      </div>
+    </div>
+
     <!-- ==================== 4. 알림 센터 패널 (Notification Panel) ==================== -->
     <div id="notification-panel" class="notification-panel">
       <div class="panel-header">
@@ -515,6 +562,6 @@
 
   </div>
 
-  <script src="app.js?v=18"></script>
+  <script src="app.js?v=19"></script>
 </body>
 </html>
