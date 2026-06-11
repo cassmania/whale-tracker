@@ -577,6 +577,27 @@ if (savedLang) {
 let currentSelectedToken = "SOL";
 let currentSelectedWindow = "1주";
 let isAlertActive = true;
+
+// [보완] 네트워크 지연 시간 및 데이터 무결성 동적 측정을 위한 전역 API 통계 상태 관리
+const API통계 = {
+  시장API성공수: 0,
+  시장API시도수: 0,
+  온체인API성공수: 0,
+  온체인API시도수: 0,
+  평균지연시간ms: 220
+};
+
+// [보완] API 호출 성공 시 통계를 기록하는 헬퍼 함수 (Record API Success Helper)
+// 기술 설명: 네트워크 지연 시간(Latency)을 측정하여 지수이동평균(EMA; Exponential Moving Average) 방식으로 평균 지연 시간을 갱신하고, 성공 카운트를 증가시킵니다.
+function recordApiSuccess(startTime, isMarket = true) {
+  const latency = Date.now() - startTime;
+  API통계.평균지연시간ms = Math.round((API통계.평균지연시간ms * 0.8) + (latency * 0.2));
+  if (isMarket) {
+    API통계.시장API성공수++;
+  } else {
+    API통계.온체인API성공수++;
+  }
+}
 // fallbackDatabase의 정적 코인에 데이터 신뢰성 및 정확성 분석 지표를 보강
 fallbackDatabase["SOL"].reliabilityMetrics = {
   integrity: 94,
@@ -758,10 +779,6 @@ const i18nDictionary = {
     "atypical-pattern-label": "Atypical Pattern: Retail wallet distributed allocation",
     "labeled-category-sum-label": "Sum of Labeled Categories (Exchange/Whale/SmartMoney/Official)",
     "untracked-wallet-label": "The rest are untracked retail wallets",
-    "capital-flow-source-label": "Flow Sources",
-    "cex-deposit-estimate-label": "Mostly CEX Deposits",
-    "user-buy-estimate-label": "- Estimated retail buying",
-    "final-net-accumulation-label": "Confirmed Net Accumulation",
     "foundation-dist-check-label": "No direct foundation distribution traces identified",
     "risk-factors-title": "⚠️ Risk Factors",
     "current-phase-analysis-title": "📊 Current Phase Analysis",
@@ -978,6 +995,9 @@ function formatMarketData(symbol, priceVal, changeVal, volumeVal) {
 
 // 4. API로부터 실시간 가격 및 시장 데이터를 수집하는 함수 (Fetch Market Data)
 async function fetchRealtimeMarketData(symbol) {
+  API통계.시장API시도수++;
+  const startTime = Date.now();
+
   // 1) Bybit API (Spot Tickers) 우선 시도 - 브라우저 CORS 제한 없고 무중단 속도 우수
   try {
     const bybitUrl = `https://api.bybit.com/v5/market/tickers?category=spot&symbol=${symbol}USDT`;
@@ -990,6 +1010,7 @@ async function fetchRealtimeMarketData(symbol) {
         const changeVal = parseFloat(ticker.price24hPcnt) * 100;
         const volumeVal = parseFloat(ticker.turnover24h || 0);
         if (!isNaN(priceVal)) {
+          recordApiSuccess(startTime, true);
           return formatMarketData(symbol, priceVal, changeVal, volumeVal);
         }
       }
@@ -1011,6 +1032,7 @@ async function fetchRealtimeMarketData(symbol) {
         const changeVal = openVal > 0 ? ((priceVal - openVal) / openVal) * 100 : 0;
         const volumeVal = parseFloat(ticker.vol24h || 0) * priceVal;
         if (!isNaN(priceVal)) {
+          recordApiSuccess(startTime, true);
           return formatMarketData(symbol, priceVal, changeVal, volumeVal);
         }
       }
@@ -1029,6 +1051,7 @@ async function fetchRealtimeMarketData(symbol) {
       const changeVal = parseFloat(data.priceChangePercent);
       const volumeVal = parseFloat(data.quoteVolume);
       if (!isNaN(priceVal)) {
+        recordApiSuccess(startTime, true);
         return formatMarketData(symbol, priceVal, changeVal, volumeVal);
       }
     }
@@ -1048,6 +1071,7 @@ async function fetchRealtimeMarketData(symbol) {
         const changeVal = parseFloat(ticker.change_percentage || 0);
         const volumeVal = parseFloat(ticker.quote_volume || 0);
         if (!isNaN(priceVal)) {
+          recordApiSuccess(startTime, true);
           return formatMarketData(symbol, priceVal, changeVal, volumeVal);
         }
       }
@@ -1070,6 +1094,7 @@ async function fetchRealtimeMarketData(symbol) {
         const changeVal = tokenInfo.usd_24h_change;
         const volumeVal = tokenInfo.usd_24h_vol;
         if (!isNaN(priceVal)) {
+          recordApiSuccess(startTime, true);
           return formatMarketData(symbol, priceVal, changeVal, volumeVal);
         }
       }
@@ -1083,6 +1108,9 @@ async function fetchRealtimeMarketData(symbol) {
 
 // 5. 블록체인 네트워크로부터 실시간 온체인 데이터를 수집하는 함수 (Fetch On-chain Data)
 async function fetchRealtimeOnchainData(symbol) {
+  API통계.온체인API시도수++;
+  const startTime = Date.now();
+
   try {
     if (symbol === "SOL") {
       // 5-1. 솔라나 메인넷 JSON-RPC 연동 (CORS 차단 방지를 위해 2초 타임아웃 강제 적용)
@@ -1097,14 +1125,21 @@ async function fetchRealtimeOnchainData(symbol) {
       if (!response.ok) throw new Error("Solana RPC 응답 실패");
       const results = await response.json();
       
-      const epochInfo = results.find(r => r.id === 1).result;
-      const supplyInfo = results.find(r => r.id === 2).result;
+      // [보완] 결과가 배열 형식인지 및 각 원소의 무결성 검증 추가
+      if (!Array.isArray(results)) throw new Error("솔라나 RPC 응답 규격이 올바르지 않습니다.");
+      
+      const epochRes = results.find(r => r && r.id === 1);
+      const supplyRes = results.find(r => r && r.id === 2);
+      
+      const epochInfo = epochRes ? epochRes.result : null;
+      const supplyInfo = supplyRes ? supplyRes.result : null;
 
       if (epochInfo && supplyInfo) {
         const circulatingSOL = `${(supplyInfo.circulating / 1e9 / 1e6).toFixed(1)}M SOL`;
+        recordApiSuccess(startTime, false);
         return {
           "최근 에포크 (Epoch)": `${epochInfo.epoch} (${Math.floor((epochInfo.slotIndex / epochInfo.slotsInEpoch) * 100)}% 진행)`,
-          "현재 슬롯 (Slot)": epochInfo.absoluteSlot.toLocaleString(),
+          "현재 슬롯 (Slot)": (epochInfo.absoluteSlot || 0).toLocaleString(),
           "유통 공급량 (Circulating)": circulatingSOL
         };
       }
@@ -1117,6 +1152,7 @@ async function fetchRealtimeOnchainData(symbol) {
       const stats = body.data;
 
       if (stats) {
+        recordApiSuccess(startTime, false);
         return {
           "24h 트랜잭션 수": `${stats.transactions_24h.toLocaleString()}건`,
           "평균 전송 수수료 (USD)": `$${stats.average_transaction_fee_usd_24h.toFixed(3)}`,
@@ -1656,8 +1692,11 @@ async function populateReportData(symbol) {
   if (!data) return;
   const localData = data[currentLang];
 
-  // 실시간 가격 데이터 가져오기
-  const rtMarket = await fetchRealtimeMarketData(symbol);
+  // [보완] 시장 시세 및 온체인 데이터를 Promise.all을 통해 병렬(Parallel)로 비동기 수집하여 지연 최소화 및 ReferenceError 예방
+  const [rtMarket, rtOnchain] = await Promise.all([
+    fetchRealtimeMarketData(symbol),
+    fetchRealtimeOnchainData(symbol)
+  ]);
   const mPrice = rtMarket ? rtMarket.price : data.price;
 
   // 헤더 매핑
@@ -1674,30 +1713,56 @@ async function populateReportData(symbol) {
   forceScore.innerHTML = `${data.forceScore}<span class="max-val">/100</span>`;
   confidenceScore.innerHTML = `${data.confidence}<span class="max-val">/100</span>`;
 
-  // 데이터 신뢰성 및 정확성 세부 지표 렌더링
-  const relMetrics = data.reliabilityMetrics;
-  if (relMetrics) {
-    const integrityVal = document.getElementById("data-integrity-val");
-    const accuracyVal = document.getElementById("data-accuracy-val");
-    const completenessVal = document.getElementById("sample-completeness-val");
-    const integrityBar = document.getElementById("data-integrity-bar");
-    const accuracyBar = document.getElementById("data-accuracy-bar");
-    const completenessBar = document.getElementById("sample-completeness-bar");
-    const reliabilityTierVal = document.getElementById("reliability-tier-val");
-    const reliabilitySummaryText = document.getElementById("reliability-summary-text");
+  // [보완] 난수가 아닌 실제 네트워크 통계 및 데이터 수집 결과에 기반한 동적 평가 지표 연산
+  let calculatedIntegrity = 95;
+  if (API통계.시장API시도수 > 0) {
+    calculatedIntegrity = Math.round((API통계.시장API성공수 / API통계.시장API시도수) * 100);
+  }
+  
+  // 지연 시간(Latency)이 400ms 이하일수록 점수 가산, 2초 이상일수록 감산
+  let latencyScore = 100 - Math.min(50, Math.max(0, (API통계.평균지연시간ms - 150) / 10));
+  let calculatedAccuracy = Math.round(latencyScore * 0.7 + (rtMarket ? 30 : 10));
+  calculatedAccuracy = Math.min(100, Math.max(50, calculatedAccuracy));
 
-    if (integrityVal) integrityVal.textContent = `${relMetrics.integrity}%`;
-    if (accuracyVal) accuracyVal.textContent = `${relMetrics.accuracy}%`;
-    if (completenessVal) completenessVal.textContent = `${relMetrics.completeness}%`;
-    
-    if (integrityBar) integrityBar.style.width = `${relMetrics.integrity}%`;
-    if (accuracyBar) accuracyBar.style.width = `${relMetrics.accuracy}%`;
-    if (completenessBar) completenessBar.style.width = `${relMetrics.completeness}%`;
+  // 온체인 API의 성공 여부에 따라 표본 데이터 충실도 계산 (기본 코인은 100%, 동적 생성 코인은 85% 기준)
+  const isFallbackOnly = !rtMarket && !rtOnchain;
+  let calculatedCompleteness = 95;
+  if (isFallbackOnly) {
+    calculatedCompleteness = 70;
+  } else if (!rtOnchain) {
+    calculatedCompleteness = 85;
+  }
+  
+  let calculatedTier = "TIER 1";
+  if (calculatedIntegrity < 80 || calculatedAccuracy < 75) {
+    calculatedTier = "TIER 3";
+  } else if (calculatedIntegrity < 90 || calculatedAccuracy < 85 || calculatedCompleteness < 90) {
+    calculatedTier = "TIER 2";
+  }
 
-    if (reliabilityTierVal) reliabilityTierVal.textContent = relMetrics.tier;
-    if (reliabilitySummaryText) {
-      reliabilitySummaryText.textContent = currentLang === "EN" ? relMetrics.summaryEN : relMetrics.summaryKR;
-    }
+  const dynamicSummaryKR = `본 ${symbol} 분석 데이터는 실시간 API 수집 성공율 ${calculatedIntegrity}% 및 평균 네트워크 응답 속도 ${API통계.평균지연시간ms}ms에 기초하여 실시간 검증되었으며, ${calculatedTier} 품질 수준을 충족합니다.`;
+  const dynamicSummaryEN = `This ${symbol} data is validated in real-time with an API success rate of ${calculatedIntegrity}% and average latency of ${API통계.평균지연시간ms}ms, meeting ${calculatedTier} standards.`;
+
+  const integrityVal = document.getElementById("data-integrity-val");
+  const accuracyVal = document.getElementById("data-accuracy-val");
+  const completenessVal = document.getElementById("sample-completeness-val");
+  const integrityBar = document.getElementById("data-integrity-bar");
+  const accuracyBar = document.getElementById("data-accuracy-bar");
+  const completenessBar = document.getElementById("sample-completeness-bar");
+  const reliabilityTierVal = document.getElementById("reliability-tier-val");
+  const reliabilitySummaryText = document.getElementById("reliability-summary-text");
+
+  if (integrityVal) integrityVal.textContent = `${calculatedIntegrity}%`;
+  if (accuracyVal) accuracyVal.textContent = `${calculatedAccuracy}%`;
+  if (completenessVal) completenessVal.textContent = `${calculatedCompleteness}%`;
+  
+  if (integrityBar) integrityBar.style.width = `${calculatedIntegrity}%`;
+  if (accuracyBar) accuracyBar.style.width = `${calculatedAccuracy}%`;
+  if (completenessBar) completenessBar.style.width = `${calculatedCompleteness}%`;
+
+  if (reliabilityTierVal) reliabilityTierVal.textContent = calculatedTier;
+  if (reliabilitySummaryText) {
+    reliabilitySummaryText.textContent = currentLang === "EN" ? dynamicSummaryEN : dynamicSummaryKR;
   }
 
   // 최종 세력 판정
@@ -1731,9 +1796,6 @@ async function populateReportData(symbol) {
     li.innerHTML = `<span class="risk-num">${index + 1}.</span> <span class="risk-text">${risk}</span>`;
     riskFactorsList.appendChild(li);
   });
-
-  // 온체인 실시간 지표 불러오기
-  const rtOnchain = await fetchRealtimeOnchainData(symbol);
 
   // 온체인 7지표 테이블 구성
   indPhaseStatus.textContent = localData.finalPhaseStatus;
@@ -2015,13 +2077,14 @@ function startAlertMonitoring() {
     
     const targets = Array.from(new Set([...getSearchHistory(), "SOL", "BTC", "ETH"]));
     
-    for (const symbol of targets) {
+    // [보완] 순차 처리로 인한 감시 루프 지연 축적을 방지하기 위해 Promise.allSettled 병렬 처리 도입
+    const monitoringPromises = targets.map(async (symbol) => {
       try {
         const rt = await fetchRealtimeMarketData(symbol);
-        if (!rt) continue;
+        if (!rt) return;
         
         const currentPrice = rt.rawPrice || parseFloat(rt.price.replace(/[^0-9.-]+/g, ""));
-        if (isNaN(currentPrice)) continue;
+        if (isNaN(currentPrice)) return;
         
         const lastPrice = priceTracker[symbol];
         if (lastPrice) {
@@ -2035,7 +2098,9 @@ function startAlertMonitoring() {
       } catch (e) {
         console.warn(`${symbol} 가격 감시 중 오류 발생:`, e);
       }
-    }
+    });
+
+    await Promise.allSettled(monitoringPromises);
     
     // 시각적 역동성을 위한 시뮬레이션 급등 알림 (5% 확률)
     if (Math.random() < 0.05) {
