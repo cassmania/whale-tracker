@@ -25,7 +25,7 @@ const fallbackDatabase = {
       altForceDetails: {
         smartMoney: "DEX 대형 매수자 15명",
         whale: "순유입 +$497.1K",
-        mm: "Wintermute Market Making [MfDuWeqS] 등 1개 라벨이 +$17.67M 흡수 중"
+        mm: "지갑 라벨 판별은 유료 데이터가 필요해 제공하지 않습니다"
       },
       patternDetails: {
         categoryPct: "0.0%",
@@ -50,7 +50,6 @@ const fallbackDatabase = {
       ],
       evidence: {
         bull: [
-          "Wintermute Market Making 순매집 +$17.7M - 거래소 매도 물량 조직적 흡수",
           "거래소 순출금 -$129.8M (1주) - 대규모 공급 압축, 시장 매수 순액 +$129.8M"
         ],
         bear: [
@@ -79,7 +78,7 @@ const fallbackDatabase = {
       altForceDetails: {
         smartMoney: "15 large DEX buyers",
         whale: "Net inflow +$497.1K",
-        mm: "1 label such as Wintermute Market Making [MfDuWeqS] absorbing +$17.67M"
+        mm: "Wallet labeling requires a paid data source — not available"
       },
       patternDetails: {
         categoryPct: "0.0%",
@@ -104,7 +103,6 @@ const fallbackDatabase = {
       ],
       evidence: {
         bull: [
-          "Wintermute Market Making net accumulation +$17.7M - systematic absorption of exchange sell pressure",
           "Exchange net outflows -$129.8M (1W) - massive supply compression, market net buying +$129.8M"
         ],
         bear: [
@@ -707,9 +705,6 @@ const i18nDictionary = {
     "terminal-msg-rpc-other": "> {symbol} 렛저 통계를 위해 Blockchair 게이트웨이 접속 중... [CONNECTED]",
     "alert-pump-title": "🚨 [급등 감지] {symbol} 세력 매집 급상승!",
     "alert-pump-body": "{symbol} 토큰이 단시간에 +{pct}% 상승하여 {price}에 도달했습니다.",
-    "alert-pre-surge-body-1": "DEX 내 상위 거래자(SmartMoney)들의 {symbol} 순매수 비중이 92%를 돌파했습니다. 가격 급상승 전 고래 축적 신호입니다.",
-    "alert-pre-surge-body-2": "최근 10분간 주요 CEX 거래소에서 {symbol} 물량 {net} 순유출 감지. 단기 유통량 공급 부족에 따른 급등 전조 상태입니다.",
-    "alert-pre-surge-body-3": "Wintermute 마켓메이커 라벨 지갑이 DEX 풀에서 {symbol} 유동성을 대량 매수하여 흡수 중입니다. 가격 급변동에 유의하세요.",
     "reliability-analysis-title": "🛡️ 데이터 신뢰성 및 정확성 분석",
     "data-integrity-label": "데이터 무결성 (Integrity)",
     "data-accuracy-label": "분석 정확성 (Accuracy)",
@@ -810,9 +805,6 @@ const i18nDictionary = {
     "terminal-msg-rpc-other": "> Accessing Blockchair gateway for {symbol} ledger stats... [CONNECTED]",
     "alert-pump-title": "🚨 [Surge Alert] {symbol} Whale Accumulation Spike!",
     "alert-pump-body": "Token {symbol} has surged +{pct}% in a short period, reaching {price}.",
-    "alert-pre-surge-body-1": "Top DEX traders (SmartMoney) net buying share for {symbol} exceeded 92%. A leading indicator of whale accumulation before price spike.",
-    "alert-pre-surge-body-2": "Large exchange net outflows of {net} detected for {symbol} from major CEX in the last 10m. Potential supply squeeze.",
-    "alert-pre-surge-body-3": "Wintermute Market Maker labeled wallets are acquiring massive liquidity of {symbol} in DEX pools. Beware of high volatility.",
     "reliability-analysis-title": "🛡️ Data Reliability & Accuracy Analysis",
     "data-integrity-label": "Data Integrity",
     "data-accuracy-label": "Analysis Accuracy",
@@ -1845,21 +1837,52 @@ async function populateReportData(symbol) {
     indicatorsTbody.appendChild(tr);
   }
 
-  // 세부 근거
+  // 세부 근거.
+  //
+  // 예전에는 fallbackDatabase의 고정 문장을 그대로 띄웠다. 그중에는
+  // "Wintermute Market Making 순매집 +$17.7M" 처럼 **실존 기업이 특정 금액을
+  // 매집 중**이라고 단언하는 문장도 있었다. 근거가 되는 데이터가 없다.
+  //
+  // 지금은 실제로 측정한 주문 흐름에서 근거를 만든다. 측정값이 없으면 비워둔다.
   evidenceSub.textContent = localData.finalPhaseDesc;
-  evidenceBullSignals.innerHTML = "";
-  localData.evidence.bull.forEach(sig => {
-    const li = document.createElement("li");
-    li.innerHTML = sig;
-    evidenceBullSignals.appendChild(li);
-  });
 
-  evidenceBearSignals.innerHTML = "";
-  localData.evidence.bear.forEach(sig => {
-    const li = document.createElement("li");
-    li.innerHTML = sig;
-    evidenceBearSignals.appendChild(li);
-  });
+  const 강세근거 = [];
+  const 약세근거 = [];
+
+  if (rtFlow) {
+    const 분 = Math.max(1, Math.round(rtFlow.windowSec / 60));
+    const 압력문 = currentLang === "EN"
+      ? `Taker pressure ${rtFlow.pressurePct >= 0 ? "+" : ""}${rtFlow.pressurePct}% over the last ${분}m (exchange prints)`
+      : `최근 ${분}분 테이커 압력 ${rtFlow.pressurePct >= 0 ? "+" : ""}${rtFlow.pressurePct}% (거래소 체결 기준)`;
+    (rtFlow.pressurePct >= 0 ? 강세근거 : 약세근거).push(압력문);
+
+    if (rtFlow.whaleCount > 0) {
+      const 매수우위 = rtFlow.whaleNetUsd >= 0;
+      const 고래문 = currentLang === "EN"
+        ? `${rtFlow.whaleCount} fills over $${fmtUsdShort(rtFlow.whaleCutUsd)}, net ${매수우위 ? "buy" : "sell"} $${fmtUsdShort(rtFlow.whaleNetUsd)}`
+        : `$${fmtUsdShort(rtFlow.whaleCutUsd)} 이상 체결 ${rtFlow.whaleCount}건, 순${매수우위 ? "매수" : "매도"} $${fmtUsdShort(rtFlow.whaleNetUsd)}`;
+      (매수우위 ? 강세근거 : 약세근거).push(고래문);
+    }
+  }
+
+  if (rtBook) {
+    const 호가문 = currentLang === "EN"
+      ? `Order book ${rtBook.imbalancePct >= 0 ? "bid" : "ask"}-heavy ${Math.abs(rtBook.imbalancePct)}%`
+      : `호가 ${rtBook.imbalancePct >= 0 ? "매수" : "매도"}벽 우위 ${Math.abs(rtBook.imbalancePct)}%`;
+    (rtBook.imbalancePct >= 0 ? 강세근거 : 약세근거).push(호가문);
+  }
+
+  const 근거없음 = currentLang === "EN" ? "No measured signal" : "측정된 신호 없음";
+  const 근거채우기 = (el, list) => {
+    el.innerHTML = "";
+    (list.length ? list : [근거없음]).forEach(sig => {
+      const li = document.createElement("li");
+      li.textContent = sig;
+      el.appendChild(li);
+    });
+  };
+  근거채우기(evidenceBullSignals, 강세근거);
+  근거채우기(evidenceBearSignals, 약세근거);
 
   // 지갑 분포 데이터
   distMainMsg.textContent = localData.distribution.donutMsg;
