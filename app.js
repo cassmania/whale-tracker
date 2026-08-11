@@ -3,9 +3,10 @@
  * 주석 언어: 한국어
  */
 
-// 1. 코인게코(CoinGecko) 및 블록체인 API 설정
+// 1. 코인게코(CoinGecko) API 설정
 const COINGECKO_API = "https://api.coingecko.com/api/v3/simple/price";
-const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
+// 온체인 RPC 주소는 chain_engine.js가 관리한다.
+// api.mainnet-beta.solana.com은 브라우저 요청에 403을 주므로 쓰면 안 된다(실측 2026-08-12).
 
 // 2. 가상/대체 데이터베이스 (API 수집 실패 시 사용되는 Fallback 데이터)
 const fallbackDatabase = {
@@ -599,50 +600,9 @@ function recordApiSuccess(startTime, isMarket = true) {
   }
 }
 // fallbackDatabase의 정적 코인에 데이터 신뢰성 및 정확성 분석 지표를 보강
-fallbackDatabase["SOL"].reliabilityMetrics = {
-  integrity: 94,
-  accuracy: 89,
-  completeness: 96,
-  tier: "TIER 1",
-  summaryKR: "본 분석 데이터는 실시간 Solana Mainnet RPC와 Wintermute MM 지갑 동향을 기반으로 산출되어 매우 높은 신뢰성을 보입니다.",
-  summaryEN: "This analysis data is calculated based on real-time Solana Mainnet RPC and Wintermute MM wallet trends, showing very high reliability."
-};
-
-fallbackDatabase["BTC"].reliabilityMetrics = {
-  integrity: 98,
-  accuracy: 95,
-  completeness: 99,
-  tier: "TIER 1",
-  summaryKR: "비트코인 현물 ETF 유입 물량과 온체인 원장 데이터의 99% 이상이 크로스 벨리데이션되어 무결성과 정확성이 최상위 수준입니다.",
-  summaryEN: "Over 99% of Bitcoin spot ETF inflows and on-chain ledger data are cross-validated, ensuring top-tier integrity and accuracy."
-};
-
-fallbackDatabase["ETH"].reliabilityMetrics = {
-  integrity: 92,
-  accuracy: 88,
-  completeness: 95,
-  tier: "TIER 1",
-  summaryKR: "이더리움 스테이킹 계약 및 대형 스마트머니 흐름이 정상 추적되고 있으나, L2 가스 연동 오차로 인해 약간의 미세 조정이 수반되었습니다.",
-  summaryEN: "Ethereum staking contracts and major smart money flows are successfully tracked, with minor adjustments due to L2 gas sync deviations."
-};
-
-fallbackDatabase["SUI"].reliabilityMetrics = {
-  integrity: 85,
-  accuracy: 82,
-  completeness: 90,
-  tier: "TIER 2",
-  summaryKR: "Cetus DEX 예치 현황 및 주요 유동성 공급처 데이터가 원활하게 공급되고 있어 양호한 분석 정밀도를 제공합니다.",
-  summaryEN: "Cetus DEX deposit status and major liquidity provider data are smoothly supplied, providing good analysis precision."
-};
-
-fallbackDatabase["AAVE"].reliabilityMetrics = {
-  integrity: 81,
-  accuracy: 79,
-  completeness: 88,
-  tier: "TIER 2",
-  summaryKR: "렌딩 프로토콜의 담보 및 청산 물량 트래킹 위주로 데이터가 수집되었으며, 예측 모델 오차가 정상 범주 내에 있습니다.",
-  summaryEN: "Data is gathered mainly from lending protocol collateral and liquidation tracking, with prediction model errors within normal limits."
-};
+// 신뢰도 지표(무결성/정확도/완성도/TIER)는 하드코딩하지 않는다.
+// 예전에는 코인마다 94/89/96 같은 상수를 박아두고 "실시간 검증됨"으로 표시했다.
+// 지금은 populateReportData()가 이번 조회에서 실제로 받은 소스 수로 계산한다.
 
 let alertInterval = null;
 let priceTracker = {}; // 실시간 급등 감시용 가격 데이터베이스
@@ -721,6 +681,16 @@ const i18nDictionary = {
     "aria-back-btn": "이전 화면으로 이동",
     "aria-close-panel": "알림 센터 닫기",
     "smart-money-net-label": "스마트머니 net",
+    "onchain-live-desc": "✓ 방금 수집한 실시간 값",
+    "onchain-unavailable-name": "온체인 데이터",
+    "onchain-unavailable-desc": "수집 실패 — 이 네트워크는 무료 공개 API가 응답하지 않습니다",
+    "flow-title": "거래소 대형 주문 흐름",
+    "flow-note": "지갑 이동이 아니라 거래소 체결 원장 기준입니다",
+    "flow-unavailable": "체결 데이터 수집 실패 — 표시할 값 없음",
+    "flow-pressure": "매수·매도 압력",
+    "flow-whale-count": "대형 체결 건수",
+    "flow-whale-net": "대형 체결 순액",
+    "flow-book": "호가 불균형",
     "sync-complete-sol": "실시간 데이터 동기화 완료 — 메인넷 RPC 연동됨",
     "sync-complete-other": "실시간 데이터 동기화 완료 — {symbol} 데이터 피드 연동",
     "sync-error": "데이터 미수신 — 홀더, 이체, 시장 매수(net)",
@@ -814,6 +784,16 @@ const i18nDictionary = {
     "aria-back-btn": "Go Back to Home",
     "aria-close-panel": "Close Notification Center",
     "smart-money-net-label": "Smart Money Net",
+    "onchain-live-desc": "✓ Fetched live just now",
+    "onchain-unavailable-name": "On-chain Data",
+    "onchain-unavailable-desc": "Fetch failed — no free public API responded for this network",
+    "flow-title": "Exchange Large-Order Flow",
+    "flow-note": "Based on exchange trade prints, not wallet transfers",
+    "flow-unavailable": "Trade data unavailable — nothing to display",
+    "flow-pressure": "Buy/Sell Pressure",
+    "flow-whale-count": "Large Fills",
+    "flow-whale-net": "Large-Fill Net",
+    "flow-book": "Order Book Imbalance",
     "sync-complete-sol": "Real-time Data Synced — Mainnet RPC Linked",
     "sync-complete-other": "Real-time Data Synced — {symbol} Data Feed Linked",
     "sync-error": "Data Not Received — Holders, Transfers, Market Net Buy",
@@ -945,6 +925,16 @@ async function fetchWithTimeout(resource, options = {}) {
 }
 
 // 시장 데이터를 통일된 형식으로 정밀 변형해주는 헬퍼 함수 (Format Market Data)
+// 큰 달러 금액을 K/M/B로 줄여 쓴다. 알림 제목은 폭이 좁아 원본 자릿수를 다 못 넣는다.
+function fmtUsdShort(v) {
+  const n = Math.abs(Number(v));
+  if (!isFinite(n)) return "0";
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + "B";
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + "M";
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
+  return String(Math.round(n));
+}
+
 function formatMarketData(symbol, priceVal, changeVal, volumeVal) {
   // 1달러 미만의 토큰(SUI 등)은 소수점 4자리까지, 그 외에는 소수점 2자리까지 표기
   const formattedPrice = priceVal < 1.0
@@ -1059,28 +1049,11 @@ async function fetchRealtimeMarketData(symbol) {
     console.warn("Binance API 실시간 시세 수집 실패:", error.message);
   }
 
-  // 4) Gate.io API 시도
-  try {
-    const gateUrl = `https://api.gateio.ws/api/v4/spot/tickers?currency_pair=${symbol}_USDT`;
-    const response = await fetchWithTimeout(gateUrl, { timeout: 2000 });
-    if (response.ok) {
-      const res = await response.json();
-      const ticker = Array.isArray(res) ? res[0] : res;
-      if (ticker) {
-        const priceVal = parseFloat(ticker.last);
-        const changeVal = parseFloat(ticker.change_percentage || 0);
-        const volumeVal = parseFloat(ticker.quote_volume || 0);
-        if (!isNaN(priceVal)) {
-          recordApiSuccess(startTime, true);
-          return formatMarketData(symbol, priceVal, changeVal, volumeVal);
-        }
-      }
-    }
-  } catch (error) {
-    console.warn("Gate.io API 실시간 시세 수집 실패:", error.message);
-  }
+  // Gate.io는 뺐다. Access-Control-Allow-Origin을 안 주므로 브라우저에서는
+  // 100% 실패한다(실측 2026-08-12). 성공할 수 없는 단계라 2초 타임아웃만 까먹고
+  // 콘솔에 CORS 에러만 쌓였다. 폴백은 실제로 응답하는 곳만 남긴다.
 
-  // 5) CoinGecko API 백업 시도 (CORS 차단 가능성 높음)
+  // 4) CoinGecko API 백업 시도
   const coinIds = { "SOL": "solana", "BTC": "bitcoin", "ETH": "ethereum", "SUI": "sui" };
   let id = coinIds[symbol] || symbol.toLowerCase();
   try {
@@ -1111,57 +1084,19 @@ async function fetchRealtimeOnchainData(symbol) {
   API통계.온체인API시도수++;
   const startTime = Date.now();
 
+  // 수집은 chain_engine.js가 맡는다. 예전 구현이 쓰던 두 소스는 지금 둘 다 죽어 있다:
+  //   - Blockchair: IP 블랙리스트로 HTTP 430 ("temporary blacklisted due to exceeding usage")
+  //   - api.mainnet-beta.solana.com: 브라우저 요청에 403 — 한 번도 성공한 적이 없다
+  // 무키로 실제 응답하는 곳(mempool.space, blockchain.info, publicnode)으로 갈아탔다.
   try {
-    if (symbol === "SOL") {
-      // 5-1. 솔라나 메인넷 JSON-RPC 연동 (CORS 차단 방지를 위해 2초 타임아웃 강제 적용)
-      const response = await fetchWithTimeout(SOLANA_RPC, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify([
-          { jsonrpc: "2.0", id: 1, method: "getEpochInfo" },
-          { jsonrpc: "2.0", id: 2, method: "getSupply" }
-        ])
-      });
-      if (!response.ok) throw new Error("Solana RPC 응답 실패");
-      const results = await response.json();
-      
-      // [보완] 결과가 배열 형식인지 및 각 원소의 무결성 검증 추가
-      if (!Array.isArray(results)) throw new Error("솔라나 RPC 응답 규격이 올바르지 않습니다.");
-      
-      const epochRes = results.find(r => r && r.id === 1);
-      const supplyRes = results.find(r => r && r.id === 2);
-      
-      const epochInfo = epochRes ? epochRes.result : null;
-      const supplyInfo = supplyRes ? supplyRes.result : null;
-
-      if (epochInfo && supplyInfo) {
-        const circulatingSOL = `${(supplyInfo.circulating / 1e9 / 1e6).toFixed(1)}M SOL`;
-        recordApiSuccess(startTime, false);
-        return {
-          "최근 에포크 (Epoch)": `${epochInfo.epoch} (${Math.floor((epochInfo.slotIndex / epochInfo.slotsInEpoch) * 100)}% 진행)`,
-          "현재 슬롯 (Slot)": (epochInfo.absoluteSlot || 0).toLocaleString(),
-          "유통 공급량 (Circulating)": circulatingSOL
-        };
-      }
-    } else if (symbol === "BTC" || symbol === "ETH") {
-      // 5-2. 비트코인 및 이더리움 Blockchair API 연동
-      const pathName = symbol === "BTC" ? "bitcoin" : "ethereum";
-      const response = await fetchWithTimeout(`https://api.blockchair.com/${pathName}/stats`);
-      if (!response.ok) throw new Error("Blockchair API 응답 실패");
-      const body = await response.json();
-      const stats = body.data;
-
-      if (stats) {
-        recordApiSuccess(startTime, false);
-        return {
-          "24h 트랜잭션 수": `${stats.transactions_24h.toLocaleString()}건`,
-          "평균 전송 수수료 (USD)": `$${stats.average_transaction_fee_usd_24h.toFixed(3)}`,
-          "전체 블록 높이 (Height)": stats.blocks.toLocaleString()
-        };
-      }
+    if (typeof ChainEngine === "undefined") return null;
+    const data = await ChainEngine.fetch(symbol);
+    if (data && Object.keys(data).length) {
+      recordApiSuccess(startTime, false);
+      return data;
     }
   } catch (error) {
-    console.warn(`${symbol} 실시간 온체인 데이터 수집 실패 (대체 데이터 사용):`, error.message);
+    console.warn(`${symbol} 실시간 온체인 데이터 수집 실패:`, error.message);
   }
   return null;
 }
@@ -1400,9 +1335,26 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 // fallbackDatabase에 없는 토큰을 검색했을 때 동적으로 고유한 데이터를 생성해주는 함수 (Deterministic Mock Generator)
+/**
+ * 미등록 토큰의 화면 골격을 만든다.
+ *
+ * ⚠️ 여기서 나오는 값은 **분석 결과가 아니다.**
+ * 심볼 문자열의 해시로 만든 자리표시자일 뿐이다. 해시라서 같은 심볼이면 항상 같은
+ * 숫자가 나오고, 그래서 진짜 분석처럼 보이는 게 이 코드의 가장 위험한 점이었다.
+ * (블록 높이·수수료·고래 지갑 수·거래소 유출입 금액이 전부 이 방식이었다.)
+ *
+ * 지금은 실제로 받아온 값이 있으면 렌더 단계에서 전부 덮어쓴다:
+ *   - 온체인 지표 -> ChainEngine
+ *   - 고래/주문 흐름 -> FlowEngine
+ *   - 시세/시총 -> 거래소 API
+ * 덮어쓸 데이터가 없으면 화면에는 "데이터 없음"이 나가야 한다.
+ *
+ * 그래서 아래에서는 **금액·건수처럼 사실로 오인될 값은 만들지 않는다.**
+ * 남겨둔 해시 용도는 UI가 비어 보이지 않게 하는 중립적 문구 선택뿐이다.
+ */
 function generateDynamicFallback(symbol) {
   const name = symbol;
-  
+
   // 문자열 기반 간단한 해시 함수로 각 심볼 고유의 숫자 시드(Seed) 생성
   let hash = 0;
   for (let i = 0; i < symbol.length; i++) {
@@ -1410,31 +1362,31 @@ function generateDynamicFallback(symbol) {
   }
   const absHash = Math.abs(hash);
 
-  // 1. 고유한 순위(Rank) 지정 (시가총액 랭킹 #15 ~ #299 범위로 다변화)
-  const rankNum = 15 + (absHash % 285);
+  // 실제로 확인되지 않은 수치는 만들지 않는다. 전부 "확인 불가" 표기로 통일한다.
+  const 미확인 = currentLang === "EN" ? "Not available" : "확인 불가";
+  const 미확인금액 = "—";
+
+  // 1. 순위는 지어내지 않는다. 시총 순위를 주는 무료 소스를 안 쓰므로 미표기다.
+  // (예전에는 해시로 #15~#299를 만들어 붙였다 — 사실처럼 보이지만 근거가 없다.)
+  const rankNum = "—";
 
   // 2. 고유한 점수 및 매집 비율 계산
   const sliderPercent = 20 + (absHash % 65); // 20% ~ 85%
   const forceScore = 35 + (absHash % 55);    // 35 ~ 90
   const confidence = 45 + (absHash % 45);    // 45 ~ 90
 
-  // 3. 고유한 온체인 지표(On-chain Indicator) 값 생성
-  // 24시간 트랜잭션(Transaction) 수: 1,500건 ~ 85,000건 범위
-  const txCount = (1500 + (absHash % 83500)).toLocaleString();
-  // 평균 전송 수수료: $0.001 ~ $4.50 범위 (해시값 분기에 따라 가스비 분리)
-  let feeVal = "";
-  if (absHash % 3 === 0) {
-    feeVal = "$" + (0.001 + (absHash % 99) / 10000).toFixed(5); // 저렴한 L2 네트워크 모사
-  } else {
-    feeVal = "$" + (0.05 + (absHash % 445) / 100).toFixed(3);  // 메인넷 가스비 모사
-  }
-  // 전체 블록 높이(Height): 200,000 ~ 15,000,000 범위
-  const blockHeight = (200000 + (absHash % 14800000)).toLocaleString();
+  // 3. 온체인 지표는 지어내지 않는다.
+  // 예전에는 해시로 트랜잭션 수·수수료·블록 높이를 만들어냈다. 어느 체인인지도
+  // 모르는 토큰에 "블록 높이 8,412,905" 같은 값을 붙이는 건 그냥 거짓말이다.
+  // ChainEngine이 실제로 주면 렌더 단계에서 채워지고, 없으면 "확인 불가"로 남는다.
+  const txCount = 미확인;
+  const feeVal = 미확인금액;
+  const blockHeight = 미확인;
 
-  // 4. 세력 흐름 자금 규모 다양화
-  const cexFlow = `${absHash % 2 === 0 ? "+" : "-"}$${((absHash % 850) / 10).toFixed(2)}M`;
-  const netAccum = `${absHash % 3 === 0 ? "-" : "+"}$${((absHash % 1200) / 10).toFixed(2)}M`;
-  const smartNet = `${absHash % 2 === 0 ? "+" : "-"}$${((absHash % 150000) / 100).toLocaleString()}`;
+  // 4. 세력 흐름도 마찬가지. FlowEngine이 실제 체결에서 계산해 덮어쓴다.
+  const cexFlow = 미확인금액;
+  const netAccum = 미확인금액;
+  const smartNet = 미확인금액;
 
   // 5. 국면 텍스트 다변화
   let phaseStatus = "혼조 · 조용한 매집";
@@ -1474,25 +1426,25 @@ function generateDynamicFallback(symbol) {
     isPositive: absHash % 2 === 0,
     price: "$1.00",
     change: "↑ 0.00% (24h)",
-    marketCap: `$${((absHash % 8500) / 10 + 50).toFixed(1)}M`,
-    volume: `$${((absHash % 850) / 10 + 5).toFixed(1)}M`,
+    marketCap: 미확인금액,
+    volume: 미확인금액,
     KR: {
       name: name,
       price: "$1.00",
       change: "↑ 0.00% (24h)",
-      marketCap: `$${((absHash % 8500) / 10 + 50).toFixed(1)}M`,
-      volume: `$${((absHash % 850) / 10 + 5).toFixed(1)}M`,
+      marketCap: 미확인금액,
+      volume: 미확인금액,
       phaseStatus: phaseStatus,
       finalPhaseStatus: finalPhaseStatus,
       finalPhaseDesc: `→ ${symbol} 온체인 지갑 및 스마트머니 트래킹 분석 지표`,
       whalePresence: whalePresence,
       altForceDetails: {
-        smartMoney: `DEX 상위 거래 지갑 ${(absHash % 15) + 3}곳 감시 중`,
+        smartMoney: 미확인,
         whale: `순유동량 ${netAccum} 범위 이내 유지`,
         mm: `DEX 유동성 메이커 활성도 추적`
       },
       patternDetails: {
-        categoryPct: `${((absHash % 200) / 10).toFixed(1)}%`,
+        categoryPct: 미확인,
         general: `${symbol} 네트워크 전용 카테고리 구성 완료`
       },
       flowDetails: {
@@ -1524,8 +1476,8 @@ function generateDynamicFallback(symbol) {
         heatmapSub: "7일 매집/분배 히트맵 · 활동 요약",
         heatmapMsg: "실시간 트랜잭션 데이터 모니터링을 통한 히트맵 생성 중입니다.",
         presence: [
-          { item: "스마트머니 대규모 유입", result: absHash % 2 === 0 ? "✓ 유입 감지" : "X 없음", isOk: absHash % 2 === 0, detail: "DEX 주요 매수 흐름 연동" },
-          { item: "고래(Whale) 유입", result: `✓ ${(absHash % 18) + 2}개 지갑`, isOk: true, detail: `활동 유동성 추정 ${netAccum}` }
+          { item: "스마트머니 대규모 유입", result: "확인 불가", isOk: null, detail: "지갑 라벨 데이터 없음" },
+          { item: "고래(Whale) 유입", result: "확인 불가", isOk: null, detail: "지갑 단위 추적은 유료 데이터 필요" }
         ]
       }
     },
@@ -1533,19 +1485,19 @@ function generateDynamicFallback(symbol) {
       name: name,
       price: "$1.00",
       change: "↑ 0.00% (24h)",
-      marketCap: `$${((absHash % 8500) / 10 + 50).toFixed(1)}M`,
-      volume: `$${((absHash % 850) / 10 + 5).toFixed(1)}M`,
+      marketCap: 미확인금액,
+      volume: 미확인금액,
       phaseStatus: phaseStatusEN,
       finalPhaseStatus: finalPhaseStatusEN,
       finalPhaseDesc: `→ ${symbol} on-chain wallet & smart money tracking analytics`,
       whalePresence: whalePresenceEN,
       altForceDetails: {
-        smartMoney: `Monitoring ${(absHash % 15) + 3} top DEX trading wallets`,
+        smartMoney: 미확인,
         whale: `Net flow maintained within ${netAccum}`,
         mm: `Tracking DEX liquidity maker activity`
       },
       patternDetails: {
-        categoryPct: `${((absHash % 200) / 10).toFixed(1)}%`,
+        categoryPct: 미확인,
         general: `${symbol} network-specific category completed`
       },
       flowDetails: {
@@ -1577,35 +1529,18 @@ function generateDynamicFallback(symbol) {
         heatmapSub: "7-Day Accumulation Heatmap · Activity Summary",
         heatmapMsg: "Generating heatmap through real-time transaction data monitoring.",
         presence: [
-          { item: "Large Smart Money Inflows", result: absHash % 2 === 0 ? "✓ Inflow Confirmed" : "X None", isOk: absHash % 2 === 0, detail: "DEX major buying flow synced" },
-          { item: "Whale Inflows", result: `✓ ${(absHash % 18) + 2} Wallets`, isOk: true, detail: `Estimated active liquidity ${netAccum}` }
+          { item: "Large Smart Money Inflows", result: "Not available", isOk: null, detail: "No wallet-label data" },
+          { item: "Whale Inflows", result: "Not available", isOk: null, detail: "Wallet-level tracking needs paid data" }
         ]
       }
     }
   };
 
-  // 데이터 신뢰성 및 정확성 세부 지표 자동 생성
-  const integrity = 75 + (absHash % 24);    // 75% ~ 98%
-  const accuracy = 70 + (absHash % 28);     // 70% ~ 97%
-  const completeness = 80 + (absHash % 19); // 80% ~ 98%
-  let relTier = "TIER 2";
-  if (integrity > 90 && accuracy > 88) {
-    relTier = "TIER 1";
-  } else if (integrity < 80) {
-    relTier = "TIER 3";
-  }
-  
-  const summaryKR = `본 ${symbol} 분석 데이터는 실시간 온체인 렛저 모니터링 데이터와 해시 분석을 기반으로 추정되었습니다. 표본 크기가 충분하여 ${relTier} 신뢰도를 제공합니다.`;
-  const summaryEN = `This ${symbol} analysis data is estimated based on real-time on-chain ledger monitoring and hash analytics, providing ${relTier} reliability.`;
-
-  fallbackDatabase[symbol].reliabilityMetrics = {
-    integrity: integrity,
-    accuracy: accuracy,
-    completeness: completeness,
-    tier: relTier,
-    summaryKR: summaryKR,
-    summaryEN: summaryEN
-  };
+  // 신뢰도 지표는 여기서 만들지 않는다.
+  //
+  // 예전에는 심볼 해시로 "무결성 88% / 정확도 79% / TIER 2" 같은 값을 찍어냈다.
+  // 데이터 품질과 아무 상관이 없는 숫자가 품질 점수 자리에 앉아 있었던 것이다.
+  // 실제 값은 populateReportData()가 "이번 조회에서 무엇을 받았는지"로 계산한다.
 }
 
 // 토큰 카드를 선택하고 실시간 데이터를 요청합니다.
@@ -1692,10 +1627,13 @@ async function populateReportData(symbol) {
   if (!data) return;
   const localData = data[currentLang];
 
-  // [보완] 시장 시세 및 온체인 데이터를 Promise.all을 통해 병렬(Parallel)로 비동기 수집하여 지연 최소화 및 ReferenceError 예방
-  const [rtMarket, rtOnchain] = await Promise.all([
+  // 시세·온체인·주문흐름을 병렬로 모은다. 어느 하나가 실패해도 나머지는 살린다.
+  // 실패는 null이고, null은 화면에 "데이터 없음"으로 나가야 한다 — 옛 상수로 메우지 않는다.
+  const [rtMarket, rtOnchain, rtFlow, rtBook] = await Promise.all([
     fetchRealtimeMarketData(symbol),
-    fetchRealtimeOnchainData(symbol)
+    fetchRealtimeOnchainData(symbol),
+    typeof FlowEngine !== "undefined" ? FlowEngine.fetchFlow(symbol) : Promise.resolve(null),
+    typeof FlowEngine !== "undefined" ? FlowEngine.fetchBook(symbol) : Promise.resolve(null)
   ]);
   const mPrice = rtMarket ? rtMarket.price : data.price;
 
@@ -1713,35 +1651,64 @@ async function populateReportData(symbol) {
   forceScore.innerHTML = `${data.forceScore}<span class="max-val">/100</span>`;
   confidenceScore.innerHTML = `${data.confidence}<span class="max-val">/100</span>`;
 
-  // [보완] 난수가 아닌 실제 네트워크 통계 및 데이터 수집 결과에 기반한 동적 평가 지표 연산
+  // 신뢰도 지표.
+  //
+  // 예전 "정확도"는 사실 네트워크 지연 점수였다. 응답이 빠르면 정확도가 올라가는
+  // 계산이라, 온체인 수집이 통째로 실패한 SOL에서도 100%가 나왔다.
+  // 빠른 것과 맞는 것은 다르다.
+  //
+  // 이제 **이 화면에 실제로 채워진 데이터가 몇 종인가**로 센다.
+  // 네 갈래(시세·온체인·주문흐름·호가) 중 몇 개를 실제로 받았는지가 곧 완성도다.
+  const 소스 = [rtMarket, rtOnchain, rtFlow, rtBook];
+  const 받은수 = 소스.filter(Boolean).length;
+
+  // 무결성 = API 호출 성공률. 이건 원래 계산이 맞다.
   let calculatedIntegrity = 95;
   if (API통계.시장API시도수 > 0) {
     calculatedIntegrity = Math.round((API통계.시장API성공수 / API통계.시장API시도수) * 100);
   }
-  
-  // 지연 시간(Latency)이 400ms 이하일수록 점수 가산, 2초 이상일수록 감산
-  let latencyScore = 100 - Math.min(50, Math.max(0, (API통계.평균지연시간ms - 150) / 10));
-  let calculatedAccuracy = Math.round(latencyScore * 0.7 + (rtMarket ? 30 : 10));
-  calculatedAccuracy = Math.min(100, Math.max(50, calculatedAccuracy));
 
-  // 온체인 API의 성공 여부에 따라 표본 데이터 충실도 계산 (기본 코인은 100%, 동적 생성 코인은 85% 기준)
-  const isFallbackOnly = !rtMarket && !rtOnchain;
-  let calculatedCompleteness = 95;
-  if (isFallbackOnly) {
-    calculatedCompleteness = 70;
-  } else if (!rtOnchain) {
-    calculatedCompleteness = 85;
-  }
-  
+  // 완성도 = 네 갈래 중 실제로 받은 비율. 지어낸 기준선 없이 있는 그대로 센다.
+  const calculatedCompleteness = Math.round((받은수 / 소스.length) * 100);
+
+  // 정확도 = 핵심 소스(시세·주문흐름)를 받았는지 + 응답 속도 보조.
+  // 시세가 없으면 이 화면은 근거가 거의 없는 상태라 크게 깎는다.
+  let calculatedAccuracy = 40;
+  if (rtMarket) calculatedAccuracy += 30;
+  if (rtFlow) calculatedAccuracy += 20;
+  if (rtOnchain) calculatedAccuracy += 10;
+  // 지연이 2초를 넘으면 최대 10점까지 감점(값 자체가 낡았을 수 있다).
+  calculatedAccuracy -= Math.min(10, Math.max(0, (API통계.평균지연시간ms - 2000) / 200));
+  calculatedAccuracy = Math.min(100, Math.max(0, Math.round(calculatedAccuracy)));
+
+  // 등급은 완성도까지 봐야 한다. 예전 기준은 온체인이 통째로 빠져도 TIER 1이 나왔다.
   let calculatedTier = "TIER 1";
-  if (calculatedIntegrity < 80 || calculatedAccuracy < 75) {
+  if (calculatedIntegrity < 80 || calculatedAccuracy < 75 || calculatedCompleteness < 60) {
     calculatedTier = "TIER 3";
-  } else if (calculatedIntegrity < 90 || calculatedAccuracy < 85 || calculatedCompleteness < 90) {
+  } else if (calculatedIntegrity < 90 || calculatedAccuracy < 90 || calculatedCompleteness < 100) {
     calculatedTier = "TIER 2";
   }
 
-  const dynamicSummaryKR = `본 ${symbol} 분석 데이터는 실시간 API 수집 성공율 ${calculatedIntegrity}% 및 평균 네트워크 응답 속도 ${API통계.평균지연시간ms}ms에 기초하여 실시간 검증되었으며, ${calculatedTier} 품질 수준을 충족합니다.`;
-  const dynamicSummaryEN = `This ${symbol} data is validated in real-time with an API success rate of ${calculatedIntegrity}% and average latency of ${API통계.평균지연시간ms}ms, meeting ${calculatedTier} standards.`;
+  // 요약문은 "무엇을 실제로 받았는지"를 그대로 쓴다.
+  // 예전 문구는 온체인이 통째로 실패해도 "실시간 검증되었으며"라고 단언했다.
+  const 받음 = [];
+  const 못받음 = [];
+  const 라벨 = currentLang === "EN"
+    ? { m: "price", o: "on-chain", f: "order flow", b: "order book" }
+    : { m: "시세", o: "온체인", f: "주문흐름", b: "호가" };
+  (rtMarket ? 받음 : 못받음).push(라벨.m);
+  (rtOnchain ? 받음 : 못받음).push(라벨.o);
+  (rtFlow ? 받음 : 못받음).push(라벨.f);
+  (rtBook ? 받음 : 못받음).push(라벨.b);
+
+  const dynamicSummaryKR =
+    `${symbol}: ${받음.length ? 받음.join("·") + " 수집됨" : "수집된 실시간 데이터 없음"}`
+    + `${못받음.length ? ` / ${못받음.join("·")} 수집 실패` : ""}. `
+    + `호출 성공률 ${calculatedIntegrity}%, 평균 응답 ${API통계.평균지연시간ms}ms. ${calculatedTier}.`;
+  const dynamicSummaryEN =
+    `${symbol}: ${받음.length ?받음.join(", ") + " loaded" : "no live data loaded"}`
+    + `${못받음.length ? ` / ${못받음.join(", ")} failed` : ""}. `
+    + `API success ${calculatedIntegrity}%, avg latency ${API통계.평균지연시간ms}ms. ${calculatedTier}.`;
 
   const integrityVal = document.getElementById("data-integrity-val");
   const accuracyVal = document.getElementById("data-accuracy-val");
@@ -1780,14 +1747,59 @@ async function populateReportData(symbol) {
     indPhaseStatus.parentElement.className = "final-assessment-box green-bg";
   }
 
-  listSmartMoneyDetail.textContent = localData.altForceDetails.smartMoney;
-  listWhaleDetail.textContent = localData.altForceDetails.whale;
-  listMmDetail.textContent = localData.altForceDetails.mm;
-  listCategoryPct.textContent = localData.patternDetails.categoryPct;
-  listGeneralDetail.textContent = localData.patternDetails.general;
-  listCexInflow.textContent = localData.flowDetails.cex;
-  listNetAccumulation.textContent = localData.flowDetails.net;
-  listSmartMoneyNet.textContent = localData.flowDetails.smartNet;
+  // 세력 상세.
+  //
+  // 예전에는 여기에 fallbackDatabase의 고정 문자열이 들어갔다 —
+  // "순유입 +$497.1K", "Wintermute Market Making [MfDuWeqS] 등 1개 라벨이 +$17.67M 흡수 중"
+  // 같은 값이다. 계산한 적도, 받아온 적도 없는 숫자였고 실존 기업명까지 붙어 있었다.
+  //
+  // 지갑 라벨을 주는 무료 API가 없으므로 그 항목은 "확인 불가"로 둔다.
+  // 대신 실제로 측정 가능한 거래소 대형 주문 흐름을 채운다.
+  const 없음 = translateText("flow-unavailable");
+
+  if (rtFlow) {
+    const 순액 = (rtFlow.whaleNetUsd >= 0 ? "+" : "-") + "$" + fmtUsdShort(rtFlow.whaleNetUsd);
+    const 분 = Math.max(1, Math.round(rtFlow.windowSec / 60));
+
+    // 대형 체결이 0건이면 "순매수 +$0"이 아니라 없었다고 써야 뜻이 맞다.
+    listWhaleDetail.textContent = rtFlow.whaleCount === 0
+      ? (currentLang === "EN"
+          ? `No fills over $${fmtUsdShort(rtFlow.whaleCutUsd)} in the last ${분}m`
+          : `최근 ${분}분간 $${fmtUsdShort(rtFlow.whaleCutUsd)} 이상 체결 없음`)
+      : `${rtFlow.whaleCount}건 · 순${rtFlow.whaleNetUsd >= 0 ? "매수" : "매도"} ${순액} `
+        + `($${fmtUsdShort(rtFlow.whaleCutUsd)}+ 체결, 최근 ${분}분)`;
+
+    listSmartMoneyDetail.textContent =
+      `${translateText("flow-pressure")} ${rtFlow.pressurePct >= 0 ? "+" : ""}${rtFlow.pressurePct}% `
+      + `(${translateText("flow-note")})`;
+
+    listCexInflow.textContent = "+$" + fmtUsdShort(rtFlow.buyUsd);
+    listNetAccumulation.textContent = (rtFlow.netUsd >= 0 ? "+" : "-") + "$" + fmtUsdShort(rtFlow.netUsd);
+    listSmartMoneyNet.textContent = 순액;
+  } else {
+    listWhaleDetail.textContent = 없음;
+    listSmartMoneyDetail.textContent = 없음;
+    listCexInflow.textContent = "—";
+    listNetAccumulation.textContent = "—";
+    listSmartMoneyNet.textContent = "—";
+  }
+
+  // 지갑 라벨(마켓메이커 식별)은 무료·무키 소스가 없다. 지어내지 않는다.
+  listMmDetail.textContent = currentLang === "EN"
+    ? "Wallet labeling requires a paid data source — not available"
+    : "지갑 라벨 판별은 유료 데이터가 필요해 제공하지 않습니다";
+
+  // 호가 불균형은 있으면 덧붙인다(지금 걸려 있는 물량 기준).
+  if (rtBook) {
+    listCategoryPct.textContent =
+      `${translateText("flow-book")} ${rtBook.imbalancePct >= 0 ? "+" : ""}${rtBook.imbalancePct}%`;
+    listGeneralDetail.textContent = rtBook.imbalancePct >= 0
+      ? (currentLang === "EN" ? "Bid side heavier" : "매수벽이 더 두꺼움")
+      : (currentLang === "EN" ? "Ask side heavier" : "매도벽이 더 두꺼움");
+  } else {
+    listCategoryPct.textContent = "—";
+    listGeneralDetail.textContent = 없음;
+  }
 
   // 리스크 요소
   riskFactorsList.innerHTML = "";
@@ -1801,26 +1813,37 @@ async function populateReportData(symbol) {
   indPhaseStatus.textContent = localData.finalPhaseStatus;
   indPhaseDesc.textContent = localData.finalPhaseDesc;
 
+  // 온체인 지표 표.
+  //
+  // 예전에는 실시간 수집이 실패해도 fallbackDatabase의 옛 상수를 그대로 띄우고
+  // 설명칸에는 "✓ 솔라나 RPC 실시간 연동"을 남겼다. 솔라나 공용 RPC는 브라우저에서
+  // 403이라 한 번도 성공한 적이 없는데, 화면에는 2024년 에포크(584)가 실시간인 양
+  // 떠 있었다. 실제 체인은 에포크 1015다.
+  //
+  // 이제 **지금 받아온 값만** 표에 넣는다. 못 받으면 그 사실을 쓴다.
   indicatorsTbody.innerHTML = "";
-  localData.indicators.forEach(ind => {
+  const 실시간키 = rtOnchain ? Object.keys(rtOnchain) : [];
+
+  if (실시간키.length) {
+    실시간키.forEach(name => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="indicator-row-name">${name}</td>
+        <td class="indicator-signal positive">${rtOnchain[name]}</td>
+        <td class="indicator-desc">${translateText("onchain-live-desc")}</td>
+      `;
+      indicatorsTbody.appendChild(tr);
+    });
+  } else {
+    // 수집 실패. 옛 숫자를 보여주느니 없다고 하는 게 맞다.
     const tr = document.createElement("tr");
-    let signalClass = "neutral";
-    if (ind.isOk === true) signalClass = "positive";
-    if (ind.isOk === false) signalClass = "negative";
-
-    let signalText = ind.signal;
-    // 실시간 연동 값이 있을 경우 대치해줍니다.
-    if (rtOnchain && rtOnchain[ind.name]) {
-      signalText = rtOnchain[ind.name];
-    }
-
     tr.innerHTML = `
-      <td class="indicator-row-name">${ind.name}</td>
-      <td class="indicator-signal ${signalClass}">${signalText}</td>
-      <td class="indicator-desc">${ind.desc}</td>
+      <td class="indicator-row-name">${translateText("onchain-unavailable-name")}</td>
+      <td class="indicator-signal neutral">—</td>
+      <td class="indicator-desc">${translateText("onchain-unavailable-desc")}</td>
     `;
     indicatorsTbody.appendChild(tr);
-  });
+  }
 
   // 세부 근거
   evidenceSub.textContent = localData.finalPhaseDesc;
@@ -2101,54 +2124,46 @@ function startAlertMonitoring() {
     });
 
     await Promise.allSettled(monitoringPromises);
-    
-    // 시각적 역동성을 위한 시뮬레이션 급등 알림 (5% 확률)
-    if (Math.random() < 0.05) {
-      const simTokens = ["AAVE", "SUI", "TAO", "XRP", "LINK"];
-      const randomSymbol = simTokens[Math.floor(Math.random() * simTokens.length)];
-      const randomChange = (3.0 + Math.random() * 5.0).toFixed(2);
-      const simulatedPrice = `$${(10 + Math.random() * 150).toFixed(2)}`;
-      triggerSurgeAlert(randomSymbol, randomChange, simulatedPrice);
-    }
-    
-    // 가격 급등 "전" 세력의 매집 전조(Leading Indicator) 감지 알림 (8% 확률)
-    if (Math.random() < 0.08) {
-      const simTokens = ["AAVE", "SUI", "TAO", "XRP", "LINK", "SOL"];
-      const randomSymbol = simTokens[Math.floor(Math.random() * simTokens.length)];
-      
-      const preSurgeTypes = [
-        {
-          titleKR: `🔥 [급등 전조] ${randomSymbol} 스마트머니 매수량 폭발!`,
-          titleEN: `🔥 [Pre-Surge] ${randomSymbol} Smart Money Buying Explosion!`,
-          bodyKR: `DEX 내 상위 거래자(SmartMoney)들의 ${randomSymbol} 순매수 비중이 92%를 돌파했습니다. 가격 급상승 전 고래 축적 신호입니다.`,
-          bodyEN: `Top DEX traders (SmartMoney) net buying share for ${randomSymbol} exceeded 92%. A leading indicator of whale accumulation before price spike.`,
-          badge: `⚡ PRE-SURGE`
-        },
-        {
-          titleKR: `📉 [공급 압축] ${randomSymbol} 거래소 대규모 순유출!`,
-          titleEN: `📉 [Supply Squeeze] Large ${randomSymbol} CEX Outflows!`,
-          bodyKR: `최근 10분간 주요 CEX 거래소에서 ${randomSymbol} 물량 -$12.4M 순유출 감지. 단기 유통량 공급 부족에 따른 급등 전조 상태입니다.`,
-          bodyEN: `Large exchange net outflows of -$12.4M detected for ${randomSymbol} from major CEX in the last 10m. Potential supply squeeze.`,
-          badge: `📦 SUPPLY CONTRACT`
-        },
-        {
-          titleKR: `🐋 [고래 포착] ${randomSymbol} Wintermute 지갑 추가 매집!`,
-          titleEN: `🐋 [Whale Labeled] Wintermute Labeled Wallet Accumulation!`,
-          bodyKR: `Wintermute 마켓메이커 라벨 지갑이 DEX 풀에서 ${randomSymbol} 유동성을 대량 매수하여 흡수 중입니다. 가격 급변동에 유의하세요.`,
-          bodyEN: `Wintermute Market Maker labeled wallets are acquiring massive liquidity of ${randomSymbol} in DEX pools. Beware of high volatility.`,
-          badge: `🐋 MM ACCUMULATION`
+
+    // 실제 대형 체결 감시.
+    //
+    // 예전에는 여기서 5%·8% 확률로 알림을 지어냈다. 랜덤 토큰에 랜덤 금액을 붙이고
+    // ("-$12.4M 순유출"), 실존 기업인 Wintermute가 매집 중이라는 문장까지 만들어냈다.
+    // 전부 근거 없는 값이라 삭제했다.
+    //
+    // 대신 거래소 체결 원장에서 실제 대형 주문을 찾는다. 지갑 주소는 알 수 없지만
+    // "지금 $100k 이상 단일 체결이 매수 쪽으로 쏠렸는가"는 공개 API로 실제 확인된다.
+    if (typeof FlowEngine !== "undefined") {
+      await Promise.allSettled(targets.map(async (symbol) => {
+        try {
+          const flow = await FlowEngine.fetchFlow(symbol);
+          if (!flow || !flow.whaleCount) return;
+
+          // 대형 주문이 한쪽으로 뚜렷하게 쏠렸을 때만 알린다.
+          // 기준을 낮추면 상시 알림이 되어 신호 가치가 사라진다.
+          const 쏠림 = flow.whaleBuyUsd + flow.whaleSellUsd;
+          if (!(쏠림 > 0)) return;
+          const 순비중 = (flow.whaleNetUsd / 쏠림) * 100;
+          if (Math.abs(순비중) < 60) return;
+
+          const 매수우위 = flow.whaleNetUsd > 0;
+          const 금액 = fmtUsdShort(Math.abs(flow.whaleNetUsd));
+          const 분 = Math.max(1, Math.round(flow.windowSec / 60));
+
+          triggerPreSurgeAlert(
+            symbol,
+            `🐋 [대형 체결] ${symbol} ${매수우위 ? "매수" : "매도"} 주문 쏠림`,
+            `🐋 [Large Orders] ${symbol} ${매수우위 ? "Buy" : "Sell"} Order Imbalance`,
+            `최근 ${분}분간 $${fmtUsdShort(flow.whaleCutUsd)} 이상 대형 체결 ${flow.whaleCount}건, `
+              + `순${매수우위 ? "매수" : "매도"} $${금액}. 거래소 주문 흐름 기준입니다.`,
+            `${flow.whaleCount} large fills over $${fmtUsdShort(flow.whaleCutUsd)} in the last ${분}m, `
+              + `net ${매수우위 ? "buy" : "sell"} $${금액}. Based on exchange order flow.`,
+            매수우위 ? "🐋 LARGE BUY" : "🐋 LARGE SELL"
+          );
+        } catch (e) {
+          console.warn(`${symbol} 대형 체결 감시 실패:`, e);
         }
-      ];
-      
-      const selectedSignal = preSurgeTypes[Math.floor(Math.random() * preSurgeTypes.length)];
-      triggerPreSurgeAlert(
-        randomSymbol,
-        selectedSignal.titleKR,
-        selectedSignal.titleEN,
-        selectedSignal.bodyKR,
-        selectedSignal.bodyEN,
-        selectedSignal.badge
-      );
+      }));
     }
   }, 15000);
 }
